@@ -21,6 +21,7 @@
   "homepage": "https://github.com/spirinity/Futuricty#readme",
   "description": "",
   "dependencies": {
+    "maplibre-gl": "^5.9.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
