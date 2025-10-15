@@ -1,0 +1,177 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+/* Hideable control panel styles */
+.control-panel-toggle {
+  transition: all 0.2s ease-in-out;
+}
+
+.control-panel-toggle:hover {
+  background-color: hsl(var(--accent) / 0.5);
+}
+
+/* Custom scrollbar styles for control panel */
+.control-panel-scrollbar {
+  scrollbar-width: thin !important;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent !important;
+}
+
+.control-panel-scrollbar::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.control-panel-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.control-panel-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3) !important;
+  border-radius: 3px !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.control-panel-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5) !important;
+}
+
+.control-panel-scrollbar::-webkit-scrollbar-thumb:active {
+  background: hsl(var(--primary) / 0.6) !important;
+}
+
+/* Hide scrollbar when not needed */
+.control-panel-scrollbar::-webkit-scrollbar-thumb:vertical {
+  min-height: 30px !important;
+}
+
+/* Alternative approach - hide scrollbar completely */
+.control-panel-scrollbar-hidden {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.control-panel-scrollbar-hidden::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Map container stability */
+.map-container {
+  transition: width 0.3s ease-in-out;
+  will-change: width;
+}
+
+.map-container.full-width {
+  width: 100%;
+}
+
+.map-container.with-panel {
+  width: calc(100% - 384px); /* 384px = w-96 */
+}
+
+/* Mobile UI Enhancements */
+.mobile-fade-in {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.mobile-bottom-sheet {
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: 0 -20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-bottom-sheet-handle {
+  cursor: grab;
+}
+
+.mobile-bottom-sheet-handle:active {
+  cursor: grabbing;
+}
+
+.mobile-swipe-indicator {
+  animation: bounce 2s infinite;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-5px);
+  }
+  60% {
+    transform: translateY(-3px);
+  }
+}
+
+/* Mobile scrollbar */
+.mobile-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+}
+
+.mobile-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.mobile-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mobile-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 2px;
+}
+
+.mobile-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}

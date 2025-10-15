@@ -1,0 +1,923 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Livability Index Design System - Urban Planning & Data Visualization Theme */
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 210 15% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 210 15% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 15% 20%;
+
+    /* Urban planning primary - deep blue #153A64 */
+    --primary: 210 65% 24%;
+    --primary-foreground: 0 0% 98%;
+    --primary-hover: 210 65% 20%;
+
+    /* Environmental green */
+    --environment: 135 60% 45%;
+    --environment-foreground: 0 0% 98%;
+
+    /* Service blue */
+    --services: 210 70% 55%;
+    --services-foreground: 0 0% 98%;
+
+    /* Safety orange */
+    --safety: 25 85% 60%;
+    --safety-foreground: 0 0% 98%;
+
+    /* Mobility purple */
+    --mobility: 270 55% 55%;
+    --mobility-foreground: 0 0% 98%;
+
+    /* Walkability green */
+    --walkability: 120 60% 55%;
+    --walkability-foreground: 0 0% 98%;
+
+    /* Affordability emerald */
+    --affordability: 150 60% 50%;
+    --affordability-foreground: 0 0% 98%;
+
+    /* Accessibility teal */
+    --accessibility: 180 60% 45%;
+    --accessibility-foreground: 0 0% 98%;
+
+    /* Police red */
+    --police: 0 70% 55%;
+    --police-foreground: 0 0% 98%;
+
+    /* Religious bone white */
+    --religious: 60 9% 98%;
+    --religious-foreground: 210 15% 20%;
+
+    --secondary: 210 15% 95%;
+    --secondary-foreground: 210 15% 30%;
+
+    --muted: 210 15% 95%;
+    --muted-foreground: 210 10% 55%;
+
+    --accent: 210 30% 90%;
+    --accent-foreground: 210 65% 24%;
+
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 210 15% 88%;
+    --input: 210 15% 88%;
+    --ring: 210 65% 24%;
+
+    --radius: 0.75rem;
+
+    /* Custom gradients */
+    --gradient-livability: linear-gradient(135deg, hsl(210 65% 24%), hsl(135 60% 45%));
+    --gradient-score: linear-gradient(90deg, hsl(0 70% 55%), hsl(25 85% 60%), hsl(135 60% 45%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 15% 98%));
+
+    /* Shadows */
+    --shadow-elegant: 0 4px 20px -4px hsl(210 15% 20% / 0.15);
+    --shadow-map: 0 8px 32px -8px hsl(210 65% 24% / 0.25);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* Control Panel specific colors for light mode - Updated to deep blue */
+    --control-primary: 210 65% 24%;      /* #153A64 - new deep blue primary */
+    --control-secondary: 210 65% 45%;    /* Lighter blue for secondary */
+    --control-accent: 210 65% 24%;       /* Same as primary for consistency */
+    --control-border: 210 65% 24%;       /* Same as primary for borders */
+    --control-bg: 210 65% 95%;           /* Very light version of primary */
+    --control-bg-light: 210 65% 97%;     /* Light version of primary */
+    
+    /* Light theme gradients for control panel text boxes - Updated to blue theme */
+    --control-gradient-light: linear-gradient(135deg, #e6f2ff, #cce7ff);
+    --control-gradient-medium: linear-gradient(135deg, #f0f7ff, #d9ecff);
+    
+    /* Beautiful button gradients that complement the blue theme */
+    --button-gradient-primary: linear-gradient(135deg, #153A64, #1e4a72);
+    --button-gradient-hover: linear-gradient(135deg, #1e4a72, #265a80);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Urban planning primary - deep blue #153A64 for dark mode */
+    --primary: 210 65% 45%;
+    --primary-foreground: 0 0% 98%;
+    --primary-hover: 210 65% 50%;
+
+    /* Environmental green for dark mode */
+    --environment: 135 60% 55%;
+    --environment-foreground: 222.2 47.4% 11.2%;
+
+    /* Service blue for dark mode */
+    --services: 210 70% 65%;
+    --services-foreground: 222.2 47.4% 11.2%;
+
+    /* Safety orange for dark mode */
+    --safety: 25 85% 70%;
+    --safety-foreground: 222.2 47.4% 11.2%;
+
+    /* Mobility purple for dark mode */
+    --mobility: 270 55% 65%;
+    --mobility-foreground: 222.2 47.4% 11.2%;
+
+    /* Walkability green for dark mode */
+    --walkability: 120 60% 65%;
+    --walkability-foreground: 222.2 47.4% 11.2%;
+
+    /* Affordability emerald for dark mode */
+    --affordability: 150 60% 60%;
+    --affordability-foreground: 222.2 47.4% 11.2%;
+
+    /* Accessibility teal for dark mode */
+    --accessibility: 180 60% 55%;
+    --accessibility-foreground: 222.2 47.4% 11.2%;
+
+    /* Police red for dark mode */
+    --police: 0 70% 65%;
+    --police-foreground: 222.2 47.4% 11.2%;
+
+    /* Religious bone white for dark mode */
+    --religious: 60 9% 90%;
+    --religious-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 210 65% 45%;
+
+    --radius: 0.75rem;
+
+    /* Custom gradients for dark mode */
+    --gradient-livability: linear-gradient(135deg, hsl(210 65% 45%), hsl(135 60% 55%));
+    --gradient-score: linear-gradient(90deg, hsl(0 70% 65%), hsl(25 85% 70%), hsl(135 60% 55%));
+    --gradient-card: linear-gradient(180deg, hsl(222.2 84% 4.9%), hsl(217.2 32.6% 17.5%));
+
+    /* Shadows for dark mode */
+    --shadow-elegant: 0 4px 20px -4px hsl(210 40% 98% / 0.15);
+    --shadow-map: 0 8px 32px -8px hsl(210 65% 45% / 0.25);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* Control Panel specific colors for dark mode - using the same blue palette but brighter */
+    --control-primary: 210 65% 65%;      /* Brighter blue for dark mode */
+    --control-secondary: 210 65% 70%;    /* Brighter blue for dark mode */
+    --control-accent: 210 65% 55%;       /* Medium blue for dark mode */
+    --control-border: 210 65% 45%;       /* Darker blue border for dark mode */
+    --control-bg: 210 65% 15%;           /* Very dark blue background for dark mode */
+    --control-bg-light: 210 65% 20%;     /* Dark blue background for dark mode */
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+/* Mobile-specific improvements for dark theme */
+@layer components {
+  /* Mobile backdrop blur improvements */
+  .mobile-backdrop {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  
+  /* Mobile button improvements */
+  .mobile-button-primary {
+    @apply bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-lg;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .mobile-button-primary:active {
+    transform: scale(0.98);
+  }
+  
+  /* Mobile card improvements */
+  .mobile-card {
+    @apply bg-card/95 backdrop-blur-md border border-border;
+    box-shadow: var(--shadow-elegant);
+  }
+  
+  /* Mobile sidebar improvements */
+  .mobile-sidebar {
+    @apply bg-background/95 backdrop-blur-md border-l border-border;
+    box-shadow: var(--shadow-map);
+  }
+  
+  /* Mobile header improvements */
+  .mobile-header {
+    @apply bg-card/95 backdrop-blur-md border-b border-border;
+    box-shadow: var(--shadow-elegant);
+  }
+  
+  /* Mobile touch improvements */
+  .mobile-touch {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  
+  /* Mobile scrollbar improvements */
+  .mobile-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
+  
+  .mobile-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .mobile-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .mobile-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 2px;
+  }
+  
+  /* Mobile animation improvements */
+  .mobile-fade-in {
+    animation: mobileFadeIn 0.3s ease-out;
+  }
+  
+  @keyframes mobileFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Light theme gradients for control panel text boxes */
+  .light .control-panel-box {
+    background: var(--control-gradient-light) !important;
+  }
+  
+  .light .control-panel-box-medium {
+    background: var(--control-gradient-medium) !important;
+  }
+  
+  /* Force switch sizing for facilities category - Small on mobile, normal on desktop */
+  .facility-switch {
+    height: 20px !important;
+    width: 36px !important;
+    min-height: 20px !important;
+    min-width: 36px !important;
+    max-height: 20px !important;
+    max-width: 36px !important;
+  }
+  
+  /* Dark theme: Make facility switches more green */
+  .dark .facility-switch[data-state="checked"] {
+    background-color: hsl(142, 76%, 36%) !important;
+  }
+  
+  .dark .facility-switch[data-state="checked"]:hover {
+    background-color: hsl(142, 76%, 42%) !important;
+  }
+  
+  .facility-switch .switch-thumb {
+    height: 16px !important;
+    width: 16px !important;
+    min-height: 16px !important;
+    min-width: 16px !important;
+    max-height: 20px !important;
+    max-width: 20px !important;
+  }
+  
+  /* Desktop: Use normal switch size like map control */
+  @media (min-width: 768px) {
+    .facility-switch {
+      height: 24px !important;
+      width: 44px !important;
+      min-height: 24px !important;
+      min-width: 44px !important;
+      max-height: 24px !important;
+      max-width: 44px !important;
+    }
+    
+    .facility-switch .switch-thumb {
+      height: 20px !important;
+      width: 20px !important;
+      min-height: 20px !important;
+      min-width: 20px !important;
+      max-height: 20px !important;
+      max-width: 20px !important;
+    }
+  }
+  
+  /* Mobile switch improvements - Keep switches at normal size */
+  .mobile-switch {
+    @apply h-6 w-11;
+    min-height: 24px;
+    min-width: 44px;
+  }
+  
+  .mobile-switch-thumb {
+    @apply h-5 w-5;
+    min-height: 20px;
+    min-width: 20px;
+  }
+  
+  .mobile-switch[data-state="checked"] {
+    @apply bg-primary;
+  }
+  
+  .mobile-switch[data-state="unchecked"] {
+    @apply bg-input;
+  }
+  
+  /* Ensure switches look normal on all screen sizes */
+  .mobile-switch[data-state="checked"] {
+    background-color: hsl(var(--primary));
+  }
+  
+  .mobile-switch[data-state="unchecked"] {
+    background-color: hsl(var(--input));
+  }
+  
+  /* Mobile touch improvements for switches */
+  .mobile-switch {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    /* Ensure proper containment */
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .mobile-switch:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+  
+  /* Ensure switch container doesn't shift */
+  .mobile-switch-container {
+    position: relative;
+    overflow: hidden;
+  }
+  
+
+  
+  /* Mobile radius toggle improvements */
+  .mobile-radius-toggle {
+    @apply flex items-center justify-between p-3 rounded-lg;
+    background: hsl(var(--card) / 0.8);
+    backdrop-filter: blur(8px);
+    border: 1px solid hsl(var(--border) / 0.3);
+  }
+  
+  .mobile-radius-toggle:hover {
+    background: hsl(var(--card) / 0.9);
+    border-color: hsl(var(--border) / 0.5);
+  }
+  
+  /* Mobile switch container improvements */
+  .mobile-switch-container {
+    @apply flex items-center gap-2;
+    min-height: 44px; /* Better touch target */
+  }
+  
+  /* Mobile swipe-up improvements */
+  .mobile-swipe-up {
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  }
+  
+  .mobile-swipe-up:active {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Mobile results card improvements */
+  .mobile-results-card {
+    @apply cursor-pointer;
+    transition: all 0.2s ease-out;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  
+  .mobile-results-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  }
+  
+  .mobile-results-card:active {
+    transform: translateY(0);
+    transition: transform 0.1s ease-out;
+  }
+  
+  /* Swipe indicator improvements */
+  .mobile-swipe-indicator {
+    animation: mobileSwipeHint 2s ease-in-out infinite;
+  }
+  
+  @keyframes mobileSwipeHint {
+    0%, 100% {
+      transform: translateY(0);
+      opacity: 0.7;
+    }
+    50% {
+      transform: translateY(-2px);
+      opacity: 1;
+    }
+  }
+  
+  /* Bottom sheet improvements - Optimized for performance */
+  .mobile-bottom-sheet {
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.3);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    /* Performance optimizations */
+    will-change: transform, height;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+  
+  .mobile-bottom-sheet-handle {
+    cursor: grab;
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+    /* Performance optimizations */
+    will-change: transform;
+    transform: translateZ(0);
+  }
+  
+  .mobile-bottom-sheet-handle:active {
+    cursor: grabbing;
+  }
+  
+  /* Bottom sheet snap animations - Optimized */
+  .mobile-bottom-sheet-snap {
+    transition: height 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  
+  /* Bottom sheet content transitions - Optimized */
+  .mobile-bottom-sheet-content {
+    transition: opacity 0.15s ease-out;
+    /* Performance optimizations */
+    will-change: opacity;
+    transform: translateZ(0);
+  }
+  
+  .mobile-bottom-sheet-content.collapsed {
+    opacity: 0.8;
+    /* Optimize for swipe-up gestures */
+    touch-action: pan-y;
+    cursor: grab;
+  }
+  
+  .mobile-bottom-sheet-content.collapsed:active {
+    cursor: grabbing;
+  }
+  
+  .mobile-bottom-sheet-content.expanded {
+    opacity: 1;
+  }
+  
+  /* Ensure proper scrolling in bottom sheet - Optimized */
+  .mobile-bottom-sheet .mobile-scrollbar {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    height: 100%;
+    min-height: 0;
+    /* Performance optimizations */
+    will-change: scroll-position;
+    transform: translateZ(0);
+  }
+  
+  /* Fix LiveabilityScore scrolling issues in desktop control panel */
+  .control-panel-scrollbar .bg-gradient-card {
+    transform: none !important;
+    will-change: auto !important;
+    backface-visibility: visible !important;
+    perspective: none !important;
+  }
+  
+  .control-panel-scrollbar .bg-gradient-card *:not(button):not([role="button"]):not(.hover\\:shadow-md):not(.transition-all) {
+    transform: none !important;
+    will-change: auto !important;
+  }
+  
+  /* Ensure LiveabilityScore cards don't move during scroll - but preserve interactive elements */
+  .control-panel-scrollbar .space-y-4 > div:not(:has(button)):not(:has([role="button"])),
+  .control-panel-scrollbar .space-y-5 > div:not(:has(button)):not(:has([role="button"])) {
+    transform: none !important;
+    will-change: auto !important;
+  }
+  
+  /* Additional fixes for LiveabilityScore component - but preserve interactive elements */
+  .control-panel-scrollbar .space-y-4:not(:has(button)):not(:has([role="button"])),
+  .control-panel-scrollbar .space-y-5:not(:has(button)):not(:has([role="button"])) {
+    transform: none !important;
+    will-change: auto !important;
+  }
+  
+  /* Prevent any hover transforms from affecting scroll */
+  .control-panel-scrollbar .hover\\:shadow-md:hover {
+    transform: none !important;
+  }
+  
+  /* Ensure progress bars and badges don't move */
+  .control-panel-scrollbar .progress,
+  .control-panel-scrollbar .badge {
+    transform: none !important;
+    will-change: auto !important;
+  }
+  
+  /* Fix score breakdown specific issues */
+  .control-panel-scrollbar .space-y-2 > div {
+    transform: none !important;
+    will-change: auto !important;
+    transition: none !important;
+  }
+  
+  /* Fix Progress component movement - but preserve interactive elements */
+  .control-panel-scrollbar .progress,
+  .control-panel-scrollbar .progress *:not(button):not([role="button"]):not(.hover\\:shadow-md):not(.transition-all) {
+    transform: none !important;
+    will-change: auto !important;
+    transition: none !important;
+  }
+  
+  /* Fix dynamic color classes that might cause movement */
+  .control-panel-scrollbar [class*="bg-"] {
+    transform: none !important;
+    will-change: auto !important;
+  }
+  
+
+  
+  .mobile-bottom-sheet .mobile-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Prevent touch events from interfering with scrolling - Optimized */
+  .mobile-bottom-sheet-content {
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+    height: 100%;
+    min-height: 0;
+    /* Performance optimizations */
+    will-change: scroll-position;
+    transform: translateZ(0);
+  }
+  
+  /* Force scroll container to work properly - Optimized */
+  .mobile-bottom-sheet .overflow-y-auto {
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    /* Performance optimizations */
+    will-change: scroll-position;
+    transform: translateZ(0);
+  }
+  
+  /* Dragging state */
+  .mobile-bottom-sheet-dragging {
+    transition: none !important;
+  }
+  
+  .mobile-bottom-sheet-dragging .mobile-bottom-sheet-handle {
+    cursor: grabbing;
+  }
+  
+  .mobile-bottom-sheet-dragging .mobile-bottom-sheet-handle > div {
+    background-color: hsl(var(--muted-foreground) / 0.6) !important;
+    transform: scale(1.1);
+    transition: all 0.1s ease;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+    /* Improve touch scrolling on mobile */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
+  }
+  
+  /* Fix LiveabilityScore scrolling issues in desktop control panel */
+  .control-panel-scrollbar .bg-gradient-card {
+    transform: none !important;
+    will-change: auto !important;
+  }
+  
+  .control-panel-scrollbar .bg-gradient-card * {
+    transform: none !important;
+    will-change: auto !important;
+  }
+  
+  /* Ensure LiveabilityScore cards don't move during scroll */
+  .control-panel-scrollbar .space-y-4 > div,
+  .control-panel-scrollbar .space-y-5 > div {
+    transform: none !important;
+    will-change: auto !important;
+  }
+  
+  /* Fix Progress component movement */
+  .control-panel-scrollbar .progress,
+  .control-panel-scrollbar .progress * {
+    transform: none !important;
+    will-change: auto !important;
+    transition: none !important;
+  }
+  
+  /* Fix Progress indicator specifically */
+  .control-panel-scrollbar .progress [data-radix-progress-indicator] {
+    transform: none !important;
+    transition: none !important;
+  }
+  
+  /* Override any transform styles on progress elements */
+  .control-panel-scrollbar [style*="transform"] {
+    transform: none !important;
+  }
+  
+  /* Fix score breakdown specific issues */
+  .control-panel-scrollbar .space-y-2 > div {
+    transform: none !important;
+    will-change: auto !important;
+  }
+  
+  /* Comprehensive fix for all LiveabilityScore elements - but preserve button animations */
+  .control-panel-scrollbar .space-y-4,
+  .control-panel-scrollbar .space-y-5,
+  .control-panel-scrollbar .space-y-4 *:not(button):not([role="button"]):not(.hover\\:shadow-md):not(.transition-all),
+  .control-panel-scrollbar .space-y-5 *:not(button):not([role="button"]):not(.hover\\:shadow-md):not(.transition-all) {
+    transform: none !important;
+    will-change: auto !important;
+    transition: none !important;
+  }
+  
+  /* Fix any elements with background gradients - but preserve interactive elements */
+  .control-panel-scrollbar [class*="bg-"]:not(button):not([role="button"]):not(.hover\\:shadow-md):not(.transition-all) {
+    transform: none !important;
+    will-change: auto !important;
+  }
+  
+  /* Disable problematic animations in control panel that cause scrolling issues */
+  .control-panel-scrollbar .bg-gradient-card,
+  .control-panel-scrollbar .space-y-4,
+  .control-panel-scrollbar .space-y-5,
+  .control-panel-scrollbar .progress,
+  .control-panel-scrollbar .badge {
+    animation: none !important;
+    transition: none !important;
+  }
+  
+  /* Fix gradient card background issues */
+  .control-panel-scrollbar .bg-gradient-card {
+    background: hsl(var(--card)) !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+  
+  /* Fix dynamic color classes */
+  .control-panel-scrollbar [class*="bg-services"],
+  .control-panel-scrollbar [class*="bg-mobility"],
+  .control-panel-scrollbar [class*="bg-safety"],
+  .control-panel-scrollbar [class*="bg-environment"] {
+    transform: none !important;
+    will-change: auto !important;
+  }
+  
+  /* Fix text color classes */
+  .control-panel-scrollbar [class*="text-services"],
+  .control-panel-scrollbar [class*="text-mobility"],
+  .control-panel-scrollbar [class*="text-safety"],
+  .control-panel-scrollbar [class*="text-environment"] {
+    transform: none !important;
+    will-change: auto !important;
+  }
+  
+  /* Fix any elements with inline styles */
+  .control-panel-scrollbar [style] {
+    transform: none !important;
+    will-change: auto !important;
+  }
+  
+
+
+  /* Mobile-specific improvements */
+  @media (max-width: 768px) {
+    /* Improve touch targets */
+    button, [role="button"] {
+      min-height: 44px;
+    }
+
+    /* Better text readability on mobile */
+    p, span, div {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Prevent zoom on input focus */
+    input, select, textarea {
+      font-size: 16px;
+    }
+
+    /* Improve scrolling performance */
+    .overflow-y-auto {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
+  /* Tablet improvements */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    /* Optimize for tablet landscape */
+    .container {
+      max-width: 100%;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+
+  /* High DPI displays */
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    /* Sharper text rendering */
+    body {
+      text-rendering: optimizeLegibility;
+    }
+  }
+}
+
+@layer components {
+  /* Mobile-friendly card styles */
+  .mobile-card {
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm;
+  }
+
+  /* Responsive text utilities */
+  .text-responsive {
+    @apply text-xs sm:text-sm md:text-base;
+  }
+
+  .text-responsive-lg {
+    @apply text-sm sm:text-base md:text-lg;
+  }
+
+  .text-responsive-xl {
+    @apply text-base sm:text-lg md:text-xl;
+  }
+
+  /* Mobile-friendly spacing */
+  .space-responsive {
+    @apply space-y-2 sm:space-y-3 md:space-y-4;
+  }
+
+  .gap-responsive {
+    @apply gap-2 sm:gap-3 md:gap-4;
+  }
+
+  /* Mobile-friendly button styles */
+  .btn-mobile {
+    @apply min-h-[44px] px-3 py-2 text-sm font-medium;
+  }
+
+  /* Mobile-friendly input styles */
+  .input-mobile {
+    @apply min-h-[44px] px-3 py-2 text-base;
+  }
+
+  /* Mobile-friendly sidebar */
+  .sidebar-mobile {
+    @apply fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-background border-l border-border transform transition-transform duration-300 ease-in-out;
+  }
+
+  .sidebar-mobile.closed {
+    @apply translate-x-full;
+  }
+
+  .sidebar-mobile.open {
+    @apply translate-x-0;
+  }
+
+  /* Mobile overlay */
+  .mobile-overlay {
+    @apply fixed inset-0 bg-black/20 z-40 backdrop-blur-sm;
+  }
+
+  /* Mobile-friendly map container */
+  .map-container-mobile {
+    @apply h-[400px] sm:h-[500px] md:h-[600px] lg:h-full;
+  }
+
+  /* Mobile-friendly search results */
+  .search-results-mobile {
+    @apply max-h-48 sm:max-h-64 overflow-y-auto;
+  }
+
+  /* Mobile-friendly progress bars */
+  .progress-mobile {
+    @apply h-1.5 sm:h-2;
+  }
+
+  /* Mobile-friendly icons */
+  .icon-mobile {
+    @apply w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5;
+  }
+
+  /* Mobile-friendly badges */
+  .badge-mobile {
+    @apply text-xs px-2 py-1;
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Mobile-first responsive utilities */
+  .container-responsive {
+    @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Mobile-friendly grid */
+  .grid-mobile {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  /* Mobile-friendly flex */
+  .flex-mobile {
+    @apply flex flex-col sm:flex-row;
+  }
+
+  /* Mobile-friendly text truncation */
+  .truncate-mobile {
+    @apply truncate max-w-full;
+  }
+
+  /* Mobile-friendly spacing */
+  .p-mobile {
+    @apply p-2 sm:p-3 md:p-4;
+  }
+
+  .m-mobile {
+    @apply m-2 sm:m-3 md:m-4;
+  }
+}
