@@ -265,11 +265,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                   onClick={handleExport}
                   disabled={isCalculating}
                   size="sm"
-                  variant="secondary"
-                  className="w-full h-10 mt-2"
+                  className="w-full h-11 mt-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white shadow-xl hover:shadow-2xl transition-all duration-200"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  {t('export.pdf') || 'Export PDF'}
+                  Export PDF
                 </Button>
               )}
             </div>
@@ -289,8 +288,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             </div>
           )}
         </div>
-
-
 
         {/* Facility Counts Section */}
         {livabilityData && (

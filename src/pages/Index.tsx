@@ -4,6 +4,8 @@ import Map from "@/components/Map";
 import LocationSearch from "@/components/LocationSearch";
 import LiveabilityScore from "@/components/LiveabilityScore";
 import ControlPanel from "@/components/ControlPanel";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import LanguageToggle from "@/components/LanguageToggle";
 import {
   calculateLivabilityScore,
   getEmptyLivabilityData,
@@ -11,9 +13,12 @@ import {
 import { searchHistoryService } from "@/services/searchHistoryService";
 import { Menu, X, BarChart3, Target, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import UserModeToggle from "@/components/UserModeToggle";
+import { useUserMode } from "@/components/UserModeProvider";
 import { useLanguage } from "@/components/LanguageProvider";
 
 const Index = () => {
+  const { mode: userMode } = useUserMode();
   const { t } = useLanguage();
   const [selectedLocation, setSelectedLocation] = useState<{
     lng: number;
@@ -304,9 +309,9 @@ const Index = () => {
           <div className="p-6 border-b border-border">
             <div className="flex items-center gap-3">
               <img
-                src="/Futuricty.png"
+                src="/Futuricty1.png"
                 alt="Futuricity Logo"
-                className="w-10 h-15"
+                className="w-24 h-15"
               />
               <div>
                 <h1 className="text-xl font-bold bg-primary bg-clip-text text-transparent">
@@ -318,7 +323,12 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Removed mode, language, and theme toggles */}
+            {/* Mode, Language, and Theme Toggles */}
+            <div className="flex items-center gap-2 mt-4">
+              <UserModeToggle />
+              <LanguageToggle />
+              <ThemeToggle />
+            </div>
           </div>
 
           {/* Sidebar Content */}
@@ -442,7 +452,11 @@ const Index = () => {
                         </p>
                       </div>
                     </div>
-                    {/* Removed mode, language, and theme toggles */}
+                    <div className="flex items-center gap-3">
+                      <UserModeToggle />
+                      <LanguageToggle />
+                      <ThemeToggle />
+                    </div>
                   </div>
 
                   {hasCalculated && livabilityData ? (
