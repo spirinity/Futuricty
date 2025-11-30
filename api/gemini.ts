@@ -1,5 +1,5 @@
 // Vercel Edge Function for Gemini AI API
-import { NextRequest, NextResponse } from 'next/server';
+// Note: Use standard Web Request/Response for Vercel Edge Functions in a non-Next.js project
 
 interface LocationData {
   address: string;
@@ -34,17 +34,25 @@ interface RequestBody {
   language: Language;
 }
 
-export const config = {
-  runtime: 'edge',
-};
+export const config = { runtime: "edge" };
 
-export default async function handler(req: NextRequest) {
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return NextResponse.json(
-      { error: 'Method not allowed' },
-      { status: 405 }
-    );
+// Small helper to return JSON responses
+function json(data: any, init?: ResponseInit) {
+  const headers = new Headers(init?.headers);
+  if (!headers.has("Content-Type"))
+    headers.set("Content-Type", "application/json");
+  return new Response(JSON.stringify(data), { ...init, headers });
+}
+
+export default async function handler(req: Request): Promise<Response> {
+  // Health check / simple diagnostics
+  if (req.method === "GET") {
+    return json({ ok: true, hasKey: Boolean(process.env.GEMINI_API_KEY) });
+  }
+
+  // Only allow POST for AI summary
+  if (req.method !== "POST") {
+    return json({ error: "Method not allowed" }, { status: 405 });
   }
 
   try {
@@ -53,27 +61,24 @@ export default async function handler(req: NextRequest) {
 
     // Validate input data
     if (!locationData || !locationData.address) {
-      return NextResponse.json(
-        { error: 'Invalid location data' },
-        { status: 400 }
-      );
+      return json({ error: "Invalid location data" }, { status: 400 });
     }
 
     if (!locationData.facilityCounts || !locationData.scores) {
-      return NextResponse.json(
-        { error: 'Missing required data' },
-        { status: 400 }
-      );
+      return json({ error: "Missing required data" }, { status: 400 });
     }
 
     // Get API key from environment variables
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
+    // If no API key, immediately return a deterministic fallback with explicit source
     if (!GEMINI_API_KEY) {
-      return NextResponse.json(
-        { error: 'Gemini API key not configured' },
-        { status: 500 }
+      const fallbackSummary = generateFallbackSummary(
+        locationData,
+        userMode,
+        language
       );
+      return json({ summary: fallbackSummary, source: "fallback" });
     }
 
     // Generate prompt based on user mode and language
@@ -81,96 +86,141 @@ export default async function handler(req: NextRequest) {
 
     // Call Gemini API
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 150,
+            maxOutputTokens: 100, // Reduced from 150 for faster response
             topP: 0.8,
-            topK: 40
-          }
+            topK: 40,
+          },
         }),
       }
     );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Gemini API error:', response.status, errorText);
-      
+      console.error("Gemini API error:", response.status, errorText);
+
       // Return fallback response instead of throwing error
-      const fallbackSummary = generateFallbackSummary(locationData, userMode, language);
-      return NextResponse.json({ summary: fallbackSummary });
+      const fallbackSummary = generateFallbackSummary(
+        locationData,
+        userMode,
+        language
+      );
+      return json({ summary: fallbackSummary, source: "fallback" });
     }
 
     const data = await response.json();
-    
-    if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
-      const summary = data.candidates[0].content.parts[0].text;
-      return NextResponse.json({ summary });
-    }
-    
-    // Fallback if response format is unexpected
-    const fallbackSummary = generateFallbackSummary(locationData, userMode, language);
-    return NextResponse.json({ summary: fallbackSummary });
 
+    if (
+      data.candidates &&
+      data.candidates[0] &&
+      data.candidates[0].content &&
+      data.candidates[0].content.parts &&
+      data.candidates[0].content.parts[0]
+    ) {
+      const summary = data.candidates[0].content.parts[0].text;
+      return json({ summary, source: "ai" });
+    }
+
+    // Fallback if response format is unexpected
+    const fallbackSummary = generateFallbackSummary(
+      locationData,
+      userMode,
+      language
+    );
+    return json({ summary: fallbackSummary, source: "fallback" });
   } catch (error) {
-    console.error('API error:', error);
-    
+    console.error("API error:", error);
+
     // Return fallback response for any error
     try {
       const body: RequestBody = await req.json();
-      const fallbackSummary = generateFallbackSummary(body.locationData, body.userMode, body.language);
-      return NextResponse.json({ summary: fallbackSummary });
-    } catch {
-      return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
+      const fallbackSummary = generateFallbackSummary(
+        body.locationData,
+        body.userMode,
+        body.language
       );
+      return json({ summary: fallbackSummary, source: "fallback" });
+    } catch {
+      return json({ error: "Internal server error" }, { status: 500 });
     }
   }
 }
 
 // Generate prompt based on user mode and language
-function generatePrompt(locationData: LocationData, userMode: UserMode, language: Language): string {
-  const baseData = language === 'id' 
-    ? `Lokasi: ${locationData.address}
+function generatePrompt(
+  locationData: LocationData,
+  userMode: UserMode,
+  language: Language
+): string {
+  const baseData =
+    language === "id"
+      ? `Lokasi: ${locationData.address}
 Skor Keseluruhan: ${locationData.scores.overall}/100
-Fasilitas: ${locationData.facilityCounts.health} kesehatan, ${locationData.facilityCounts.education} pendidikan, ${locationData.facilityCounts.market} belanja, ${locationData.facilityCounts.transport} transportasi, ${locationData.facilityCounts.walkability} kemudahan jalan kaki, ${locationData.facilityCounts.recreation} rekreasi
-Skor: Layanan ${locationData.scores.services}, Mobilitas ${locationData.scores.mobility}, Keamanan ${locationData.scores.safety}, Lingkungan ${locationData.scores.environment}
-Terdekat: ${locationData.nearbyFacilities.slice(0, 5).join(', ')}`
-    : `Location: ${locationData.address}
+Fasilitas: ${locationData.facilityCounts.health} kesehatan, ${
+          locationData.facilityCounts.education
+        } pendidikan, ${locationData.facilityCounts.market} belanja, ${
+          locationData.facilityCounts.transport
+        } transportasi, ${
+          locationData.facilityCounts.walkability
+        } kemudahan jalan kaki, ${
+          locationData.facilityCounts.recreation
+        } rekreasi
+Skor: Layanan ${locationData.scores.services}, Mobilitas ${
+          locationData.scores.mobility
+        }, Keamanan ${locationData.scores.safety}, Lingkungan ${
+          locationData.scores.environment
+        }
+Terdekat: ${locationData.nearbyFacilities.slice(0, 5).join(", ")}`
+      : `Location: ${locationData.address}
 Overall Score: ${locationData.scores.overall}/100
-Facilities: ${locationData.facilityCounts.health} healthcare, ${locationData.facilityCounts.education} education, ${locationData.facilityCounts.market} shopping, ${locationData.facilityCounts.transport} transport, ${locationData.facilityCounts.walkability} walkability, ${locationData.facilityCounts.recreation} recreation
-Scores: Services ${locationData.scores.services}, Mobility ${locationData.scores.mobility}, Safety ${locationData.scores.safety}, Environment ${locationData.scores.environment}
-Nearby: ${locationData.nearbyFacilities.slice(0, 5).join(', ')}`;
+Facilities: ${locationData.facilityCounts.health} healthcare, ${
+          locationData.facilityCounts.education
+        } education, ${locationData.facilityCounts.market} shopping, ${
+          locationData.facilityCounts.transport
+        } transport, ${locationData.facilityCounts.walkability} walkability, ${
+          locationData.facilityCounts.recreation
+        } recreation
+Scores: Services ${locationData.scores.services}, Mobility ${
+          locationData.scores.mobility
+        }, Safety ${locationData.scores.safety}, Environment ${
+          locationData.scores.environment
+        }
+Nearby: ${locationData.nearbyFacilities.slice(0, 5).join(", ")}`;
 
-  if (language === 'id') {
+  if (language === "id") {
     switch (userMode) {
-      case 'residents':
+      case "residents":
         return `Ringkas kelayakan huni lokasi ini dalam 2-3 kalimat untuk seseorang yang sedang mempertimbangkan untuk tinggal di sana. Fokus pada kekuatan dan apa yang membuat area ini unik. Gunakan bahasa yang ramah dan membantu.
 
 ${baseData}`;
-      
-      case 'business-owner':
+
+      case "business-owner":
         return `Analisis potensi bisnis lokasi ini dalam 2-3 kalimat untuk pemilik bisnis yang sedang mempertimbangkan untuk membuka bisnis di sana. Fokus pada peluang pasar, aksesibilitas pelanggan, dan lingkungan bisnis. Gunakan bahasa yang profesional dan strategis.
 
 ${baseData}`;
-      
-      case 'urban-planner':
+
+      case "urban-planner":
         return `Berikan analisis perencanaan kota untuk lokasi ini dalam 2-3 kalimat untuk perencana kota dan pengembang. Fokus pada kesenjangan infrastruktur, peluang pengembangan, dan pertimbangan perencanaan. Gunakan bahasa yang analitis dan profesional.
 
 ${baseData}`;
-      
+
       default:
         return `Ringkas kelayakan huni lokasi ini dalam 2-3 kalimat untuk seseorang yang sedang mempertimbangkan untuk tinggal di sana. Fokus pada kekuatan dan apa yang membuat area ini unik. Gunakan bahasa yang ramah dan membantu.
 
@@ -178,21 +228,21 @@ ${baseData}`;
     }
   } else {
     switch (userMode) {
-      case 'residents':
+      case "residents":
         return `Summarize this location's livability in 2-3 sentences for someone considering living there. Focus on the strengths and what makes this area unique. Be conversational and helpful.
 
 ${baseData}`;
-      
-      case 'business-owner':
+
+      case "business-owner":
         return `Analyze this location's business potential in 2-3 sentences for a business owner considering opening a business there. Focus on market opportunities, customer accessibility, and business environment. Be professional and strategic.
 
 ${baseData}`;
-      
-      case 'urban-planner':
+
+      case "urban-planner":
         return `Provide an urban planning analysis of this location in 2-3 sentences for urban planners and developers. Focus on infrastructure gaps, development opportunities, and planning considerations. Be analytical and professional.
 
 ${baseData}`;
-      
+
       default:
         return `Summarize this location's livability in 2-3 sentences for someone considering living there. Focus on the strengths and what makes this area unique. Be conversational and helpful.
 
@@ -202,14 +252,18 @@ ${baseData}`;
 }
 
 // Fallback summary generation (same as the original mock function)
-function generateFallbackSummary(data: LocationData, userMode: UserMode, language: Language): string {
+function generateFallbackSummary(
+  data: LocationData,
+  userMode: UserMode,
+  language: Language
+): string {
   const { scores, facilityCounts, address } = data;
-  
-  let summary = '';
-  
-  if (userMode === 'residents') {
+
+  let summary = "";
+
+  if (userMode === "residents") {
     // Overall assessment for residents
-    if (language === 'id') {
+    if (language === "id") {
       if (scores.overall >= 80) {
         summary += `Area ini di ${address} menawarkan kelayakan huni yang sangat baik dengan skor yang kuat sebesar ${scores.overall}/100. `;
       } else if (scores.overall >= 60) {
@@ -226,52 +280,77 @@ function generateFallbackSummary(data: LocationData, userMode: UserMode, languag
         summary += `This location in ${address} has moderate livability with a score of ${scores.overall}/100. `;
       }
     }
-    
+
     // Highlight strengths for residents
-    if (language === 'id') {
+    if (language === "id") {
       const strengths = [];
-      if (scores.services >= 70) strengths.push('akses layanan yang sangat baik');
-      if (scores.mobility >= 70) strengths.push('konektivitas transportasi umum yang bagus');
-      if (scores.safety >= 70) strengths.push('peringkat keamanan yang tinggi');
-      if (scores.environment >= 70) strengths.push('fasilitas rekreasi yang baik');
-      
+      if (scores.services >= 70)
+        strengths.push("akses layanan yang sangat baik");
+      if (scores.mobility >= 70)
+        strengths.push("konektivitas transportasi umum yang bagus");
+      if (scores.safety >= 70) strengths.push("peringkat keamanan yang tinggi");
+      if (scores.environment >= 70)
+        strengths.push("fasilitas rekreasi yang baik");
+
       if (strengths.length > 0) {
-        summary += `Area ini unggul dalam ${strengths.slice(0, 2).join(' dan ')}. `;
+        summary += `Area ini unggul dalam ${strengths
+          .slice(0, 2)
+          .join(" dan ")}. `;
       }
-      
+
       // Facility highlights for residents
       const facilityHighlights = [];
-      if (facilityCounts.education > 0) facilityHighlights.push(`${facilityCounts.education} fasilitas pendidikan`);
-      if (facilityCounts.health > 0) facilityHighlights.push(`${facilityCounts.health} pilihan layanan kesehatan`);
-      if (facilityCounts.market > 0) facilityHighlights.push(`${facilityCounts.market} tempat belanja`);
-      
+      if (facilityCounts.education > 0)
+        facilityHighlights.push(
+          `${facilityCounts.education} fasilitas pendidikan`
+        );
+      if (facilityCounts.health > 0)
+        facilityHighlights.push(
+          `${facilityCounts.health} pilihan layanan kesehatan`
+        );
+      if (facilityCounts.market > 0)
+        facilityHighlights.push(`${facilityCounts.market} tempat belanja`);
+
       if (facilityHighlights.length > 0) {
-        summary += `Masyarakat memiliki akses ke ${facilityHighlights.slice(0, 2).join(' dan ')} dalam jarak berjalan kaki.`;
+        summary += `Masyarakat memiliki akses ke ${facilityHighlights
+          .slice(0, 2)
+          .join(" dan ")} dalam jarak berjalan kaki.`;
       }
     } else {
       const strengths = [];
-      if (scores.services >= 70) strengths.push('excellent access to services');
-      if (scores.mobility >= 70) strengths.push('great public transport connectivity');
-      if (scores.safety >= 70) strengths.push('high safety ratings');
-      if (scores.environment >= 70) strengths.push('good recreational facilities');
-      
+      if (scores.services >= 70) strengths.push("excellent access to services");
+      if (scores.mobility >= 70)
+        strengths.push("great public transport connectivity");
+      if (scores.safety >= 70) strengths.push("high safety ratings");
+      if (scores.environment >= 70)
+        strengths.push("good recreational facilities");
+
       if (strengths.length > 0) {
-        summary += `The area excels in ${strengths.slice(0, 2).join(' and ')}. `;
+        summary += `The area excels in ${strengths
+          .slice(0, 2)
+          .join(" and ")}. `;
       }
-      
+
       // Facility highlights for residents
       const facilityHighlights = [];
-      if (facilityCounts.education > 0) facilityHighlights.push(`${facilityCounts.education} education facilities`);
-      if (facilityCounts.health > 0) facilityHighlights.push(`${facilityCounts.health} healthcare options`);
-      if (facilityCounts.market > 0) facilityHighlights.push(`${facilityCounts.market} shopping venues`);
-      
+      if (facilityCounts.education > 0)
+        facilityHighlights.push(
+          `${facilityCounts.education} education facilities`
+        );
+      if (facilityCounts.health > 0)
+        facilityHighlights.push(`${facilityCounts.health} healthcare options`);
+      if (facilityCounts.market > 0)
+        facilityHighlights.push(`${facilityCounts.market} shopping venues`);
+
       if (facilityHighlights.length > 0) {
-        summary += `Residents have access to ${facilityHighlights.slice(0, 2).join(' and ')} within walking distance.`;
+        summary += `Residents have access to ${facilityHighlights
+          .slice(0, 2)
+          .join(" and ")} within walking distance.`;
       }
     }
-  } else if (userMode === 'business-owner') {
+  } else if (userMode === "business-owner") {
     // Business analysis
-    if (language === 'id') {
+    if (language === "id") {
       if (scores.overall >= 80) {
         summary += `Lokasi ini di ${address} menawarkan peluang bisnis yang sangat baik dengan skor kelayakan huni yang tinggi sebesar ${scores.overall}/100. `;
       } else if (scores.overall >= 60) {
@@ -279,12 +358,15 @@ function generateFallbackSummary(data: LocationData, userMode: UserMode, languag
       } else {
         summary += `Lokasi ini di ${address} memiliki potensi bisnis yang sedang dengan skor kelayakan huni ${scores.overall}/100. `;
       }
-      
+
       // Business-focused insights
-      if (facilityCounts.market > 0) summary += `Keberadaan ${facilityCounts.market} tempat belanja menunjukkan aktivitas komersial yang aktif. `;
-      if (scores.mobility >= 70) summary += `Konektivitas transportasi yang sangat baik memastikan aksesibilitas pelanggan. `;
-      if (scores.safety >= 70) summary += `Peringkat keamanan yang tinggi menunjukkan lingkungan bisnis yang stabil. `;
-      
+      if (facilityCounts.market > 0)
+        summary += `Keberadaan ${facilityCounts.market} tempat belanja menunjukkan aktivitas komersial yang aktif. `;
+      if (scores.mobility >= 70)
+        summary += `Konektivitas transportasi yang sangat baik memastikan aksesibilitas pelanggan. `;
+      if (scores.safety >= 70)
+        summary += `Peringkat keamanan yang tinggi menunjukkan lingkungan bisnis yang stabil. `;
+
       summary += `Pertimbangkan profil demografis dan kesenjangan layanan saat merencanakan strategi bisnis Anda.`;
     } else {
       if (scores.overall >= 80) {
@@ -294,17 +376,20 @@ function generateFallbackSummary(data: LocationData, userMode: UserMode, languag
       } else {
         summary += `This location in ${address} has moderate business potential with a livability score of ${scores.overall}/100. `;
       }
-      
+
       // Business-focused insights
-      if (facilityCounts.market > 0) summary += `The presence of ${facilityCounts.market} shopping venues indicates active commercial activity. `;
-      if (scores.mobility >= 70) summary += `Excellent transport connectivity ensures customer accessibility. `;
-      if (scores.safety >= 70) summary += `High safety ratings suggest a stable business environment. `;
-      
+      if (facilityCounts.market > 0)
+        summary += `The presence of ${facilityCounts.market} shopping venues indicates active commercial activity. `;
+      if (scores.mobility >= 70)
+        summary += `Excellent transport connectivity ensures customer accessibility. `;
+      if (scores.safety >= 70)
+        summary += `High safety ratings suggest a stable business environment. `;
+
       summary += `Consider the demographic profile and service gaps when planning your business strategy.`;
     }
   } else {
     // Urban planning analysis
-    if (language === 'id') {
+    if (language === "id") {
       if (scores.overall >= 80) {
         summary += `Lokasi ini di ${address} menunjukkan pengembangan kota yang kuat dengan skor kelayakan huni yang tinggi sebesar ${scores.overall}/100. `;
       } else if (scores.overall >= 60) {
@@ -312,12 +397,15 @@ function generateFallbackSummary(data: LocationData, userMode: UserMode, languag
       } else {
         summary += `Lokasi ini di ${address} menawarkan peluang perencanaan kota dengan skor kelayakan huni ${scores.overall}/100. `;
       }
-      
+
       // Planning-focused insights
-      if (facilityCounts.health < 2) summary += `Infrastruktur kesehatan dapat ditingkatkan. `;
-      if (facilityCounts.education < 2) summary += `Fasilitas pendidikan mungkin perlu diperluas. `;
-      if (scores.mobility < 60) summary += `Pengembangan infrastruktur transportasi direkomendasikan. `;
-      
+      if (facilityCounts.health < 2)
+        summary += `Infrastruktur kesehatan dapat ditingkatkan. `;
+      if (facilityCounts.education < 2)
+        summary += `Fasilitas pendidikan mungkin perlu diperluas. `;
+      if (scores.mobility < 60)
+        summary += `Pengembangan infrastruktur transportasi direkomendasikan. `;
+
       summary += `Fokus pada kesenjangan infrastruktur dan peluang pengembangan berkelanjutan.`;
     } else {
       if (scores.overall >= 80) {
@@ -327,15 +415,18 @@ function generateFallbackSummary(data: LocationData, userMode: UserMode, languag
       } else {
         summary += `This location in ${address} presents urban planning opportunities with a livability score of ${scores.overall}/100. `;
       }
-      
+
       // Planning-focused insights
-      if (facilityCounts.health < 2) summary += `Healthcare infrastructure could be enhanced. `;
-      if (facilityCounts.education < 2) summary += `Educational facilities may need expansion. `;
-      if (scores.mobility < 60) summary += `Transport infrastructure development is recommended. `;
-      
+      if (facilityCounts.health < 2)
+        summary += `Healthcare infrastructure could be enhanced. `;
+      if (facilityCounts.education < 2)
+        summary += `Educational facilities may need expansion. `;
+      if (scores.mobility < 60)
+        summary += `Transport infrastructure development is recommended. `;
+
       summary += `Focus on infrastructure gaps and sustainable development opportunities.`;
     }
   }
-  
+
   return summary;
 }

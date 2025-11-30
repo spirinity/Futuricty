@@ -19,8 +19,8 @@ class CacheService {
   private generateKey(prefix: string, params: Record<string, any>): string {
     const sortedParams = Object.keys(params)
       .sort()
-      .map(key => `${key}:${params[key]}`)
-      .join('|');
+      .map((key) => `${key}:${params[key]}`)
+      .join("|");
     return `${prefix}:${sortedParams}`;
   }
 
@@ -49,7 +49,7 @@ class CacheService {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
-      ttl
+      ttl,
     });
   }
 
@@ -68,7 +68,7 @@ class CacheService {
     return {
       size: this.cache.size,
       maxSize: this.maxSize,
-      keys: Array.from(this.cache.keys())
+      keys: Array.from(this.cache.keys()),
     };
   }
 
@@ -80,7 +80,7 @@ class CacheService {
     ttl: number = this.defaultTTL
   ): Promise<T> {
     const key = this.generateKey(prefix, params);
-    
+
     // Try to get from cache first
     const cached = this.get<T>(key);
     if (cached !== null) {
@@ -89,10 +89,10 @@ class CacheService {
 
     // Fetch fresh data
     const data = await fetchFn();
-    
+
     // Cache the result
     this.set(key, data, ttl);
-    
+
     return data;
   }
 
@@ -104,9 +104,11 @@ class CacheService {
     fetchFn: () => Promise<T>,
     ttl: number = 30 * 60 * 1000 // 30 minutes for location data
   ): Promise<T> {
+    // Round to 3 decimal places (~111 meters precision)
+    // This ensures nearby locations share the same cache for consistency
     return this.cacheAPI(
       `location-${dataType}`,
-      { lat: lat.toFixed(4), lng: lng.toFixed(4) },
+      { lat: lat.toFixed(3), lng: lng.toFixed(3) },
       fetchFn,
       ttl
     );
@@ -119,7 +121,7 @@ class CacheService {
     ttl: number = 10 * 60 * 1000 // 10 minutes for search results
   ): Promise<T> {
     return this.cacheAPI(
-      'search',
+      "search",
       { query: query.toLowerCase().trim() },
       fetchFn,
       ttl
@@ -135,11 +137,11 @@ class CacheService {
     ttl: number = 60 * 60 * 1000 // 1 hour for AI responses
   ): Promise<T> {
     return this.cacheAPI(
-      'ai-response',
-      { 
+      "ai-response",
+      {
         prompt: prompt.substring(0, 100), // Truncate long prompts
         userMode,
-        language
+        language,
       },
       fetchFn,
       ttl
@@ -157,7 +159,7 @@ export const cacheUtils = {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return hash.toString();
@@ -185,8 +187,8 @@ export const cacheUtils = {
       if (!inThrottle) {
         func(...args);
         inThrottle = true;
-        setTimeout(() => inThrottle = false, limit);
+        setTimeout(() => (inThrottle = false), limit);
       }
     };
-  }
+  },
 };

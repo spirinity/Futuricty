@@ -1,11 +1,14 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { MapPin, Search, Loader2, History, X, Clock } from 'lucide-react';
-import { useLanguage } from './LanguageProvider';
-import { cacheService } from '@/services/cacheService';
-import { searchHistoryService, SearchHistoryItem } from '@/services/searchHistoryService';
+import React, { useState, useRef, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { MapPin, Search, Loader2, History, X, Clock } from "lucide-react";
+import { useLanguage } from "./LanguageProvider";
+import { cacheService } from "@/services/cacheService";
+import {
+  searchHistoryService,
+  SearchHistoryItem,
+} from "@/services/searchHistoryService";
 
 interface SearchResult {
   display_name: string;
@@ -19,9 +22,12 @@ interface LocationSearchProps {
   className?: string;
 }
 
-const LocationSearch: React.FC<LocationSearchProps> = ({ onLocationSelect, className }) => {
+const LocationSearch: React.FC<LocationSearchProps> = ({
+  onLocationSelect,
+  className,
+}) => {
   const { t } = useLanguage();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
@@ -32,19 +38,24 @@ const LocationSearch: React.FC<LocationSearchProps> = ({ onLocationSelect, class
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
         setShowResults(false);
         setShowHistory(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Load search history on component mount
   useEffect(() => {
-    setSearchHistory(searchHistoryService.getRecentSearches());
+    const history = searchHistoryService.getRecentSearches();
+    setSearchHistory(history);
+    console.log("Search history loaded:", history.length, "items");
   }, []);
 
   const searchLocation = async (searchQuery: string) => {
@@ -81,7 +92,7 @@ const LocationSearch: React.FC<LocationSearchProps> = ({ onLocationSelect, class
 
   const handleInputChange = (value: string) => {
     setQuery(value);
-    
+
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
@@ -102,14 +113,24 @@ const LocationSearch: React.FC<LocationSearchProps> = ({ onLocationSelect, class
     onLocationSelect(lng, lat, result.display_name);
     setQuery(result.display_name);
     setShowResults(false);
-    
+
     // Add to search history
-    searchHistoryService.addToHistory(result.display_name, result.display_name, { lat, lng });
-    setSearchHistory(searchHistoryService.getRecentSearches());
+    searchHistoryService.addToHistory(
+      result.display_name,
+      result.display_name,
+      { lat, lng }
+    );
+    const updatedHistory = searchHistoryService.getRecentSearches();
+    setSearchHistory(updatedHistory);
+    console.log("Added to history, now have:", updatedHistory.length, "items");
   };
 
   const handleHistorySelect = (historyItem: SearchHistoryItem) => {
-    onLocationSelect(historyItem.coordinates.lng, historyItem.coordinates.lat, historyItem.address);
+    onLocationSelect(
+      historyItem.coordinates.lng,
+      historyItem.coordinates.lat,
+      historyItem.address
+    );
     setQuery(historyItem.query);
     setShowHistory(false);
   };
@@ -133,7 +154,7 @@ const LocationSearch: React.FC<LocationSearchProps> = ({ onLocationSelect, class
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return 'Just now';
+    if (minutes < 1) return "Just now";
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     return `${days}d ago`;
@@ -142,27 +163,40 @@ const LocationSearch: React.FC<LocationSearchProps> = ({ onLocationSelect, class
   return (
     <div ref={searchRef} className={`relative ${className}`}>
       <div className="relative">
-        <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 transition-colors duration-200 ${
-          isLoading ? 'text-primary' : query.length > 0 ? 'text-primary' : 'text-muted-foreground'
-        }`} />
+        <Search
+          className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 transition-colors duration-200 ${
+            isLoading
+              ? "text-primary"
+              : query.length > 0
+              ? "text-primary"
+              : "text-muted-foreground"
+          }`}
+        />
         <Input
           type="text"
-          placeholder={t('search.placeholder')}
+          placeholder={t("search.placeholder")}
           value={query}
           onChange={(e) => handleInputChange(e.target.value)}
           onFocus={() => {
             if (query.length >= 3 || isLoading) {
               setShowResults(true);
-            } else if (searchHistory.length > 0) {
+              setShowHistory(false);
+            } else if (searchHistory.length > 0 && query.length === 0) {
               setShowHistory(true);
+              setShowResults(false);
             }
           }}
-          className={`pl-10 ${isLoading ? 'pr-12' : 'pr-10'} bg-card focus:border-primary focus:ring-primary text-sm md:text-base transition-all duration-200`}
+          className={`pl-10 ${
+            isLoading ? "pr-12" : "pr-10"
+          } bg-card focus:border-primary focus:ring-primary text-sm md:text-base transition-all duration-200`}
         />
-        {!isLoading && searchHistory.length > 0 && (
+        {!isLoading && searchHistory.length > 0 && query.length === 0 && (
           <button
             type="button"
-            onClick={() => setShowHistory(!showHistory)}
+            onClick={() => {
+              setShowHistory(!showHistory);
+              setShowResults(false);
+            }}
             className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-muted rounded transition-colors"
             title="Search History"
           >
@@ -185,7 +219,9 @@ const LocationSearch: React.FC<LocationSearchProps> = ({ onLocationSelect, class
                 <div className="flex items-center justify-between p-2 border-b border-border/50">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-muted-foreground">Recent Searches</span>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Recent Searches
+                    </span>
                   </div>
                   <Button
                     variant="ghost"
@@ -214,7 +250,9 @@ const LocationSearch: React.FC<LocationSearchProps> = ({ onLocationSelect, class
                         </div>
                       </div>
                       <button
-                        onClick={(e) => handleRemoveHistoryItem(historyItem.id, e)}
+                        onClick={(e) =>
+                          handleRemoveHistoryItem(historyItem.id, e)
+                        }
                         className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded"
                       >
                         <X className="w-3 h-3 text-muted-foreground hover:text-destructive" />
@@ -233,7 +271,9 @@ const LocationSearch: React.FC<LocationSearchProps> = ({ onLocationSelect, class
                 {isLoading ? (
                   <div className="flex items-center justify-center p-4 text-muted-foreground">
                     <Loader2 className="w-4 h-4 mr-2 animate-spin text-primary" />
-                    <span className="text-sm">{t('search.searching') || 'Searching for locations...'}</span>
+                    <span className="text-sm">
+                      {t("search.searching") || "Searching for locations..."}
+                    </span>
                   </div>
                 ) : results.length > 0 ? (
                   results.map((result) => (
@@ -244,16 +284,23 @@ const LocationSearch: React.FC<LocationSearchProps> = ({ onLocationSelect, class
                       onClick={() => handleResultSelect(result)}
                     >
                       <MapPin className="w-3 h-3 md:w-4 md:h-4 mr-2 text-primary flex-shrink-0" />
-                      <span className="text-xs md:text-sm truncate leading-tight">{result.display_name}</span>
+                      <span className="text-xs md:text-sm truncate leading-tight">
+                        {result.display_name}
+                      </span>
                     </Button>
                   ))
                 ) : query.length >= 3 ? (
                   <div className="flex items-center justify-center p-4 text-muted-foreground">
-                    <span className="text-sm">{t('search.no.results') || 'No results found'}</span>
+                    <span className="text-sm">
+                      {t("search.no.results") || "No results found"}
+                    </span>
                   </div>
                 ) : query.length > 0 ? (
                   <div className="flex items-center justify-center p-4 text-muted-foreground">
-                    <span className="text-sm">{t('search.type.minimum') || 'Type at least 3 characters to search'}</span>
+                    <span className="text-sm">
+                      {t("search.type.minimum") ||
+                        "Type at least 3 characters to search"}
+                    </span>
                   </div>
                 ) : null}
               </div>

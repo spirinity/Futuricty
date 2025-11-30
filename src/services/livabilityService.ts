@@ -1,5 +1,6 @@
 // Livability calculation service using OpenStreetMap Overpass API
-import { cacheService, cacheUtils } from './cacheService';
+import { cacheService, cacheUtils } from "./cacheService";
+import { customPoiService } from "./customPoiService";
 
 interface Facility {
   id: string;
@@ -49,16 +50,21 @@ const FACILITY_DISTANCES = {
   safety: 1000,
   accessibility: 1000,
   police: 1000,
-  religious: 1000
+  religious: 1000,
 };
 
 // Generate Overpass API queries with appropriate distances
-const generateOverpassQuery = (category: string, lat: number, lng: number): string => {
-  const distance = FACILITY_DISTANCES[category as keyof typeof FACILITY_DISTANCES] || 1000;
-  
+const generateOverpassQuery = (
+  category: string,
+  lat: number,
+  lng: number
+): string => {
+  const distance =
+    FACILITY_DISTANCES[category as keyof typeof FACILITY_DISTANCES] || 1000;
+
   const queries = {
     health: `
-      [out:json][timeout:25];
+      [out:json];
       (
         node["amenity"~"^(hospital|clinic|doctors|dentist|pharmacy|veterinary)$"](around:${distance},{lat},{lng});
         way["amenity"~"^(hospital|clinic|doctors|dentist|pharmacy|veterinary)$"](around:${distance},{lat},{lng});
@@ -68,7 +74,7 @@ const generateOverpassQuery = (category: string, lat: number, lng: number): stri
       out center;
     `,
     education: `
-      [out:json][timeout:25];
+      [out:json];
       (
         node["amenity"~"^(school|university|college|kindergarten|library)$"](around:${distance},{lat},{lng});
         way["amenity"~"^(school|university|college|kindergarten|library)$"](around:${distance},{lat},{lng});
@@ -78,7 +84,7 @@ const generateOverpassQuery = (category: string, lat: number, lng: number): stri
       out center;
     `,
     market: `
-      [out:json][timeout:25];
+      [out:json];
       (
         // GRAB ALL SHOPS - OSM already knows what's a shop!
         node["shop"](around:${distance},{lat},{lng});
@@ -108,7 +114,7 @@ const generateOverpassQuery = (category: string, lat: number, lng: number): stri
     `,
 
     transport: `
-      [out:json][timeout:25];
+      [out:json];
       (
         node["public_transport"~"^(platform|station|stop_position)$"](around:${distance},{lat},{lng});
         node["highway"="bus_stop"](around:${distance},{lat},{lng});
@@ -120,7 +126,7 @@ const generateOverpassQuery = (category: string, lat: number, lng: number): stri
       out center;
     `,
     walkability: `
-      [out:json][timeout:25];
+      [out:json];
       (
         // Pedestrian-friendly streets and paths
         way["highway"~"^(footway|pedestrian|path|steps|bridleway)$"](around:${distance},{lat},{lng});
@@ -184,7 +190,7 @@ const generateOverpassQuery = (category: string, lat: number, lng: number): stri
       out center;
     `,
     recreation: `
-      [out:json][timeout:25];
+      [out:json];
       (
         node["leisure"~"^(park|playground|sports_centre|fitness_centre|swimming_pool|garden)$"](around:${distance},{lat},{lng});
         way["leisure"~"^(park|playground|sports_centre|fitness_centre|swimming_pool|garden)$"](around:${distance},{lat},{lng});
@@ -196,7 +202,7 @@ const generateOverpassQuery = (category: string, lat: number, lng: number): stri
       out center;
     `,
     safety: `
-      [out:json][timeout:25];
+      [out:json];
       (
         // Street lighting
         node["highway"="street_lamp"](around:${distance},{lat},{lng});
@@ -266,7 +272,7 @@ const generateOverpassQuery = (category: string, lat: number, lng: number): stri
       out center;
     `,
     police: `
-      [out:json][timeout:25];
+      [out:json];
       (
         // Police stations and related facilities
         node["amenity"="police"](around:${distance},{lat},{lng});
@@ -277,7 +283,7 @@ const generateOverpassQuery = (category: string, lat: number, lng: number): stri
       out center;
     `,
     religious: `
-      [out:json][timeout:25];
+      [out:json];
       (
         node["amenity"~"^(place_of_worship|mosque|church|temple|synagogue|hindu_temple|buddhist_temple)$"](around:${distance},{lat},{lng});
         way["amenity"~"^(place_of_worship|mosque|church|temple|synagogue|hindu_temple|buddhist_temple)$"](around:${distance},{lat},{lng});
@@ -285,49 +291,67 @@ const generateOverpassQuery = (category: string, lat: number, lng: number): stri
         way["name"~"^(masjid|gudang|gereja|katedral|katedral|synagogue|hindu_temple|buddhist_temple)"](around:${distance},{lat},{lng});
       );
       out center;
-    `
+    `,
   };
-  
+
   return queries[category as keyof typeof queries] || queries.health;
 };
 
 // Calculate distance between two coordinates (Haversine formula)
-const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+const calculateDistance = (
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number => {
   const R = 6371000; // Earth's radius in meters
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLng/2) * Math.sin(dLng/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
 
 // Query Overpass API for facilities with caching
-const queryOverpassAPI = async (query: string, lat: number, lng: number): Promise<any[]> => {
-  const formattedQuery = query.replace(/{lat}/g, lat.toString()).replace(/{lng}/g, lng.toString());
-  
+const queryOverpassAPI = async (
+  query: string,
+  lat: number,
+  lng: number
+): Promise<any[]> => {
+  const formattedQuery = query
+    .replace(/{lat}/g, lat.toString())
+    .replace(/{lng}/g, lng.toString());
+
   return cacheService.cacheLocationData(
     lat,
     lng,
     `overpass-${cacheUtils.hash(formattedQuery)}`,
     async () => {
       try {
-        const response = await fetch('https://overpass-api.de/api/interpreter', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: formattedQuery
-        });
-        
+        const response = await fetch(
+          "https://overpass-api.de/api/interpreter",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: formattedQuery,
+          }
+        );
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         return data.elements || [];
       } catch (error) {
+        console.error("Overpass API error:", error);
         return [];
       }
     },
@@ -336,7 +360,10 @@ const queryOverpassAPI = async (query: string, lat: number, lng: number): Promis
 };
 
 // Calculate distance-based contribution using gradual decay
-const calculateDistanceContribution = (distance: number, category: string): number => {
+const calculateDistanceContribution = (
+  distance: number,
+  category: string
+): number => {
   // Different decay rates for different facility types
   const decayConfig = {
     health: { maxDistance: 1000, maxContribution: 10, decayRate: 0.8 },
@@ -348,21 +375,23 @@ const calculateDistanceContribution = (distance: number, category: string): numb
     safety: { maxDistance: 1000, maxContribution: 6, decayRate: 0.7 },
     accessibility: { maxDistance: 1000, maxContribution: 4, decayRate: 0.9 },
     police: { maxDistance: 1000, maxContribution: 8, decayRate: 0.6 },
-    religious: { maxDistance: 1000, maxContribution: 6, decayRate: 0.75 }
+    religious: { maxDistance: 1000, maxContribution: 6, decayRate: 0.75 },
   };
 
-  const config = decayConfig[category as keyof typeof decayConfig] || decayConfig.health;
-  
+  const config =
+    decayConfig[category as keyof typeof decayConfig] || decayConfig.health;
+
   // If beyond max distance, no contribution
   if (distance > config.maxDistance) {
     return 0;
   }
-  
+
   // Calculate contribution using exponential decay
   // Formula: contribution = maxContribution * (1 - distance/maxDistance)^decayRate
   const normalizedDistance = distance / config.maxDistance;
-  const contribution = config.maxContribution * Math.pow(1 - normalizedDistance, config.decayRate);
-  
+  const contribution =
+    config.maxContribution * Math.pow(1 - normalizedDistance, config.decayRate);
+
   // Ensure minimum contribution for very close facilities
   const minContribution = config.maxContribution * 0.1;
   return Math.max(contribution, minContribution);
@@ -370,417 +399,451 @@ const calculateDistanceContribution = (distance: number, category: string): numb
 
 // Process facility data and calculate contribution scores
 const processFacilities = (
-  elements: any[], 
-  category: string, 
-  userLat: number, 
+  elements: any[],
+  category: string,
+  userLat: number,
   userLng: number
 ): Facility[] => {
-  
-  
-  const facilities = elements.map((element, index) => {
-    const lat = element.lat || (element.center && element.center.lat) || 0;
-    const lng = element.lon || (element.center && element.center.lon) || 0;
-    const distance = calculateDistance(userLat, userLng, lat, lng);
-    
-    // Calculate contribution based on distance using gradual decay
-    let contribution = 0;
-    
-    // Determine the actual category based on the element's tags
-    let actualCategory = category;
-    
-    // PRIORITY 1: Check for education facilities FIRST (highest priority)
-    if (element.tags?.amenity === 'school' || 
-        element.tags?.amenity === 'university' || 
-        element.tags?.amenity === 'college' || 
-        element.tags?.amenity === 'kindergarten' || 
-        element.tags?.amenity === 'library' ||
-        (element.tags?.name && (
-          element.tags.name.toLowerCase().includes('sekolah') ||
-          element.tags.name.toLowerCase().includes('sd ') ||
-          element.tags.name.toLowerCase().includes(' smp') ||
-          element.tags.name.toLowerCase().includes(' sma') ||
-          element.tags.name.toLowerCase().includes('smk') ||
-          element.tags.name.toLowerCase().includes('universitas') ||
-          element.tags.name.toLowerCase().includes('univ') ||
-          element.tags.name.toLowerCase().includes('kampus') ||
-          element.tags.name.toLowerCase().includes('tk') ||
-          element.tags.name.toLowerCase().includes('paud') ||
-          element.tags.name.toLowerCase().includes('perpustakaan') ||
-          element.tags.name.toLowerCase().includes('library')
-        ))) {
-      actualCategory = 'education';
-    }
-    // PRIORITY 2: Check for police facilities
-    else if (element.tags?.amenity === 'police' ||
-             (element.tags?.name && (
-               element.tags.name.toLowerCase().includes('polisi') ||
-               element.tags.name.toLowerCase().includes('polres') ||
-               element.tags.name.toLowerCase().includes('polsek') ||
-               element.tags.name.toLowerCase().includes('polda') ||
-               element.tags.name.toLowerCase().includes('satlantas') ||
-               element.tags.name.toLowerCase().includes('satpol') ||
-               element.tags.name.toLowerCase().includes('pp') ||
-               element.tags.name.toLowerCase().includes('police')
-             ))) {
-      actualCategory = 'police';
-    }
-    // PRIORITY 3: Check for market/shop facilities
-    else if (element.tags?.shop ||
-             element.tags?.amenity === 'restaurant' ||
-             element.tags?.amenity === 'cafe' ||
-             element.tags?.amenity === 'fast_food' ||
-             element.tags?.amenity === 'food_court' ||
-             element.tags?.amenity === 'bar' ||
-             element.tags?.amenity === 'pub' ||
-             element.tags?.amenity === 'ice_cream' ||
-             element.tags?.amenity === 'coffee_shop' ||
-             element.tags?.amenity === 'fuel' ||
-             element.tags?.amenity === 'gas_station' ||
-             element.tags?.amenity === 'petrol_station' ||
-             element.tags?.amenity === 'service_station' ||
-             (element.tags?.amenity === 'community_centre' && element.tags?.name && (
-               element.tags.name.toLowerCase().includes('pasar') ||
-               element.tags.name.toLowerCase().includes('market') ||
-               element.tags.name.toLowerCase().includes('pusat') ||
-               element.tags.name.toLowerCase().includes('center') ||
-               element.tags.name.toLowerCase().includes('centre')
-             )) ||
-             (element.tags?.name && (
-               element.tags.name.toLowerCase().includes('spbu') ||
-               element.tags.name.toLowerCase().includes('pom bensin') ||
-               element.tags.name.toLowerCase().includes('gas station') ||
-               element.tags.name.toLowerCase().includes('petrol') ||
-               element.tags.name.toLowerCase().includes('fuel') ||
-               element.tags.name.toLowerCase().includes('bensin') ||
-               element.tags.name.toLowerCase().includes('solar') ||
-               element.tags.name.toLowerCase().includes('pertamina') ||
-               element.tags.name.toLowerCase().includes('shell') ||
-               element.tags.name.toLowerCase().includes('bp') ||
-               element.tags.name.toLowerCase().includes('esso') ||
-               element.tags.name.toLowerCase().includes('caltex') ||
-               element.tags.name.toLowerCase().includes('toko') ||
-               element.tags.name.toLowerCase().includes('warung') ||
-               element.tags.name.toLowerCase().includes('shop') ||
-               element.tags.name.toLowerCase().includes('store') ||
-               element.tags.name.toLowerCase().includes('market') ||
-               element.tags.name.toLowerCase().includes('mall') ||
-               element.tags.name.toLowerCase().includes('plaza')
-             ))) {
-      actualCategory = 'market';
-    }
-    // PRIORITY 4: Check for health facilities
-    else if (element.tags?.amenity === 'hospital' || 
-             element.tags?.amenity === 'clinic' || 
-             element.tags?.amenity === 'doctors' ||
-             element.tags?.amenity === 'dentist' ||
-             element.tags?.amenity === 'pharmacy' ||
-             element.tags?.amenity === 'veterinary' ||
-             (element.tags?.name && (
-               element.tags.name.toLowerCase().includes('rumah sakit') ||
-               (element.tags.name.toLowerCase().includes('rs ') && 
-                !element.tags.name.toLowerCase().includes('sekolah') && 
-                !element.tags.name.toLowerCase().includes('sd') &&
-                !element.tags.name.toLowerCase().includes('smp') &&
-                !element.tags.name.toLowerCase().includes('sma') &&
-                !element.tags.name.toLowerCase().includes('smk')) ||
-               element.tags.name.toLowerCase().includes('rsud') ||
-               element.tags.name.toLowerCase().includes('klinik') ||
-               element.tags.name.toLowerCase().includes('apotek') ||
-               element.tags.name.toLowerCase().includes('apotik') ||
-               element.tags.name.toLowerCase().includes('dokter') ||
-               element.tags.name.toLowerCase().includes('puskesmas') ||
-               element.tags.name.toLowerCase().includes('poli')
-             ))) {
-      actualCategory = 'health';
-    }
-    // PRIORITY 5: Check for transport facilities
-    else if (element.tags?.public_transport === 'platform' ||
-             element.tags?.public_transport === 'station' ||
-             element.tags?.public_transport === 'stop_position' ||
-             element.tags?.highway === 'bus_stop' ||
-             element.tags?.railway === 'station' ||
-             element.tags?.railway === 'halt' ||
-             element.tags?.railway === 'tram_stop' ||
-             (element.tags?.name && (
-               element.tags.name.toLowerCase().includes('halte') ||
-               element.tags.name.toLowerCase().includes('bus stop') ||
-               element.tags.name.toLowerCase().includes('terminal') ||
-               element.tags.name.toLowerCase().includes('stasiun') ||
-               element.tags.name.toLowerCase().includes('station') ||
-               element.tags.name.toLowerCase().includes('mrt') ||
-               element.tags.name.toLowerCase().includes('lrt') ||
-               element.tags.name.toLowerCase().includes('transjakarta') ||
-               element.tags.name.toLowerCase().includes('angkot')
-             ))) {
-      actualCategory = 'transport';
-    }
-    // PRIORITY 6: Check for religious facilities
-    else if (element.tags?.amenity === 'place_of_worship' ||
-             element.tags?.amenity === 'mosque' ||
-             element.tags?.amenity === 'church' ||
-             element.tags?.amenity === 'temple' ||
-             element.tags?.amenity === 'synagogue' ||
-             element.tags?.amenity === 'hindu_temple' ||
-             element.tags?.amenity === 'buddhist_temple' ||
-             (element.tags?.name && (
-               element.tags.name.toLowerCase().includes('masjid') ||
-               element.tags.name.toLowerCase().includes('gudang') ||
-               element.tags.name.toLowerCase().includes('gereja') ||
-               element.tags.name.toLowerCase().includes('katedral') ||
-               element.tags.name.toLowerCase().includes('synagogue') ||
-               element.tags.name.toLowerCase().includes('hindu_temple') ||
-               element.tags.name.toLowerCase().includes('buddhist_temple') ||
-               element.tags.name.toLowerCase().includes('pura') ||
-               element.tags.name.toLowerCase().includes('candi') ||
-               element.tags.name.toLowerCase().includes('vihara')
-             ))) {
-      actualCategory = 'religious';
-    }
-    // PRIORITY 7: Check for recreation facilities
-    else if (element.tags?.leisure === 'park' ||
-             element.tags?.leisure === 'playground' ||
-             element.tags?.leisure === 'sports_centre' ||
-             element.tags?.leisure === 'fitness_centre' ||
-             element.tags?.leisure === 'swimming_pool' ||
-             element.tags?.leisure === 'garden' ||
-             element.tags?.amenity === 'cinema' ||
-             element.tags?.amenity === 'theatre' ||
-             element.tags?.amenity === 'community_centre' ||
-             (element.tags?.name && (
-               element.tags.name.toLowerCase().includes('taman') ||
-               element.tags.name.toLowerCase().includes('park') ||
-               element.tags.name.toLowerCase().includes('playground') ||
-               element.tags.name.toLowerCase().includes('kolam renang') ||
-               element.tags.name.toLowerCase().includes('swimming') ||
-               element.tags.name.toLowerCase().includes('gym') ||
-               element.tags.name.toLowerCase().includes('fitness') ||
-               element.tags.name.toLowerCase().includes('bioskop') ||
-               element.tags.name.toLowerCase().includes('cinema') ||
-               element.tags.name.toLowerCase().includes('teater') ||
-               element.tags.name.toLowerCase().includes('theatre') ||
-               element.tags.name.toLowerCase().includes('pusat komunitas')
-             ))) {
-      actualCategory = 'recreation';
-    }
-    // PRIORITY 8: Check for walkability infrastructure features
-    else if (element.tags?.highway === 'footway' ||
-        element.tags?.highway === 'pedestrian' ||
-        element.tags?.highway === 'path' ||
-        element.tags?.highway === 'steps' ||
-        element.tags?.highway === 'bridleway' ||
+  const facilities = elements
+    .map((element, index) => {
+      const lat = element.lat || (element.center && element.center.lat) || 0;
+      const lng = element.lon || (element.center && element.center.lon) || 0;
+      const distance = calculateDistance(userLat, userLng, lat, lng);
+
+      // Calculate contribution based on distance using gradual decay
+      let contribution = 0;
+
+      // Determine the actual category based on the element's tags
+      let actualCategory = category;
+
+      // PRIORITY 1: Check for education facilities FIRST (highest priority)
+      if (
+        element.tags?.amenity === "school" ||
+        element.tags?.amenity === "university" ||
+        element.tags?.amenity === "college" ||
+        element.tags?.amenity === "kindergarten" ||
+        element.tags?.amenity === "library" ||
+        (element.tags?.name &&
+          (element.tags.name.toLowerCase().includes("sekolah") ||
+            element.tags.name.toLowerCase().includes("sd ") ||
+            element.tags.name.toLowerCase().includes(" smp") ||
+            element.tags.name.toLowerCase().includes(" sma") ||
+            element.tags.name.toLowerCase().includes("smk") ||
+            element.tags.name.toLowerCase().includes("universitas") ||
+            element.tags.name.toLowerCase().includes("univ") ||
+            element.tags.name.toLowerCase().includes("kampus") ||
+            element.tags.name.toLowerCase().includes("tk") ||
+            element.tags.name.toLowerCase().includes("paud") ||
+            element.tags.name.toLowerCase().includes("perpustakaan") ||
+            element.tags.name.toLowerCase().includes("library")))
+      ) {
+        actualCategory = "education";
+      }
+      // PRIORITY 2: Check for police facilities
+      else if (
+        element.tags?.amenity === "police" ||
+        (element.tags?.name &&
+          (element.tags.name.toLowerCase().includes("polisi") ||
+            element.tags.name.toLowerCase().includes("polres") ||
+            element.tags.name.toLowerCase().includes("polsek") ||
+            element.tags.name.toLowerCase().includes("polda") ||
+            element.tags.name.toLowerCase().includes("satlantas") ||
+            element.tags.name.toLowerCase().includes("satpol") ||
+            element.tags.name.toLowerCase().includes("pp") ||
+            element.tags.name.toLowerCase().includes("police")))
+      ) {
+        actualCategory = "police";
+      }
+      // PRIORITY 3: Check for market/shop facilities
+      else if (
+        element.tags?.shop ||
+        element.tags?.amenity === "restaurant" ||
+        element.tags?.amenity === "cafe" ||
+        element.tags?.amenity === "fast_food" ||
+        element.tags?.amenity === "food_court" ||
+        element.tags?.amenity === "bar" ||
+        element.tags?.amenity === "pub" ||
+        element.tags?.amenity === "ice_cream" ||
+        element.tags?.amenity === "coffee_shop" ||
+        element.tags?.amenity === "fuel" ||
+        element.tags?.amenity === "gas_station" ||
+        element.tags?.amenity === "petrol_station" ||
+        element.tags?.amenity === "service_station" ||
+        (element.tags?.amenity === "community_centre" &&
+          element.tags?.name &&
+          (element.tags.name.toLowerCase().includes("pasar") ||
+            element.tags.name.toLowerCase().includes("market") ||
+            element.tags.name.toLowerCase().includes("pusat") ||
+            element.tags.name.toLowerCase().includes("center") ||
+            element.tags.name.toLowerCase().includes("centre"))) ||
+        (element.tags?.name &&
+          (element.tags.name.toLowerCase().includes("spbu") ||
+            element.tags.name.toLowerCase().includes("pom bensin") ||
+            element.tags.name.toLowerCase().includes("gas station") ||
+            element.tags.name.toLowerCase().includes("petrol") ||
+            element.tags.name.toLowerCase().includes("fuel") ||
+            element.tags.name.toLowerCase().includes("bensin") ||
+            element.tags.name.toLowerCase().includes("solar") ||
+            element.tags.name.toLowerCase().includes("pertamina") ||
+            element.tags.name.toLowerCase().includes("shell") ||
+            element.tags.name.toLowerCase().includes("bp") ||
+            element.tags.name.toLowerCase().includes("esso") ||
+            element.tags.name.toLowerCase().includes("caltex") ||
+            element.tags.name.toLowerCase().includes("toko") ||
+            element.tags.name.toLowerCase().includes("warung") ||
+            element.tags.name.toLowerCase().includes("shop") ||
+            element.tags.name.toLowerCase().includes("store") ||
+            element.tags.name.toLowerCase().includes("market") ||
+            element.tags.name.toLowerCase().includes("mall") ||
+            element.tags.name.toLowerCase().includes("plaza")))
+      ) {
+        actualCategory = "market";
+      }
+      // PRIORITY 4: Check for health facilities
+      else if (
+        element.tags?.amenity === "hospital" ||
+        element.tags?.amenity === "clinic" ||
+        element.tags?.amenity === "doctors" ||
+        element.tags?.amenity === "dentist" ||
+        element.tags?.amenity === "pharmacy" ||
+        element.tags?.amenity === "veterinary" ||
+        (element.tags?.name &&
+          (element.tags.name.toLowerCase().includes("rumah sakit") ||
+            (element.tags.name.toLowerCase().includes("rs ") &&
+              !element.tags.name.toLowerCase().includes("sekolah") &&
+              !element.tags.name.toLowerCase().includes("sd") &&
+              !element.tags.name.toLowerCase().includes("smp") &&
+              !element.tags.name.toLowerCase().includes("sma") &&
+              !element.tags.name.toLowerCase().includes("smk")) ||
+            element.tags.name.toLowerCase().includes("rsud") ||
+            element.tags.name.toLowerCase().includes("klinik") ||
+            element.tags.name.toLowerCase().includes("apotek") ||
+            element.tags.name.toLowerCase().includes("apotik") ||
+            element.tags.name.toLowerCase().includes("dokter") ||
+            element.tags.name.toLowerCase().includes("puskesmas") ||
+            element.tags.name.toLowerCase().includes("poli")))
+      ) {
+        actualCategory = "health";
+      }
+      // PRIORITY 5: Check for transport facilities
+      else if (
+        element.tags?.public_transport === "platform" ||
+        element.tags?.public_transport === "station" ||
+        element.tags?.public_transport === "stop_position" ||
+        element.tags?.highway === "bus_stop" ||
+        element.tags?.railway === "station" ||
+        element.tags?.railway === "halt" ||
+        element.tags?.railway === "tram_stop" ||
+        (element.tags?.name &&
+          (element.tags.name.toLowerCase().includes("halte") ||
+            element.tags.name.toLowerCase().includes("bus stop") ||
+            element.tags.name.toLowerCase().includes("terminal") ||
+            element.tags.name.toLowerCase().includes("stasiun") ||
+            element.tags.name.toLowerCase().includes("station") ||
+            element.tags.name.toLowerCase().includes("mrt") ||
+            element.tags.name.toLowerCase().includes("lrt") ||
+            element.tags.name.toLowerCase().includes("transjakarta") ||
+            element.tags.name.toLowerCase().includes("angkot")))
+      ) {
+        actualCategory = "transport";
+      }
+      // PRIORITY 6: Check for religious facilities
+      else if (
+        element.tags?.amenity === "place_of_worship" ||
+        element.tags?.amenity === "mosque" ||
+        element.tags?.amenity === "church" ||
+        element.tags?.amenity === "temple" ||
+        element.tags?.amenity === "synagogue" ||
+        element.tags?.amenity === "hindu_temple" ||
+        element.tags?.amenity === "buddhist_temple" ||
+        (element.tags?.name &&
+          (element.tags.name.toLowerCase().includes("masjid") ||
+            element.tags.name.toLowerCase().includes("gudang") ||
+            element.tags.name.toLowerCase().includes("gereja") ||
+            element.tags.name.toLowerCase().includes("katedral") ||
+            element.tags.name.toLowerCase().includes("synagogue") ||
+            element.tags.name.toLowerCase().includes("hindu_temple") ||
+            element.tags.name.toLowerCase().includes("buddhist_temple") ||
+            element.tags.name.toLowerCase().includes("pura") ||
+            element.tags.name.toLowerCase().includes("candi") ||
+            element.tags.name.toLowerCase().includes("vihara")))
+      ) {
+        actualCategory = "religious";
+      }
+      // PRIORITY 7: Check for recreation facilities
+      else if (
+        element.tags?.leisure === "park" ||
+        element.tags?.leisure === "playground" ||
+        element.tags?.leisure === "sports_centre" ||
+        element.tags?.leisure === "fitness_centre" ||
+        element.tags?.leisure === "swimming_pool" ||
+        element.tags?.leisure === "garden" ||
+        element.tags?.amenity === "cinema" ||
+        element.tags?.amenity === "theatre" ||
+        element.tags?.amenity === "community_centre" ||
+        (element.tags?.name &&
+          (element.tags.name.toLowerCase().includes("taman") ||
+            element.tags.name.toLowerCase().includes("park") ||
+            element.tags.name.toLowerCase().includes("playground") ||
+            element.tags.name.toLowerCase().includes("kolam renang") ||
+            element.tags.name.toLowerCase().includes("swimming") ||
+            element.tags.name.toLowerCase().includes("gym") ||
+            element.tags.name.toLowerCase().includes("fitness") ||
+            element.tags.name.toLowerCase().includes("bioskop") ||
+            element.tags.name.toLowerCase().includes("cinema") ||
+            element.tags.name.toLowerCase().includes("teater") ||
+            element.tags.name.toLowerCase().includes("theatre") ||
+            element.tags.name.toLowerCase().includes("pusat komunitas")))
+      ) {
+        actualCategory = "recreation";
+      }
+      // PRIORITY 8: Check for walkability infrastructure features
+      else if (
+        element.tags?.highway === "footway" ||
+        element.tags?.highway === "pedestrian" ||
+        element.tags?.highway === "path" ||
+        element.tags?.highway === "steps" ||
+        element.tags?.highway === "bridleway" ||
         element.tags?.sidewalk ||
-        element.tags?.footway === 'sidewalk' ||
-        element.tags?.footway === 'crossing' ||
+        element.tags?.footway === "sidewalk" ||
+        element.tags?.footway === "crossing" ||
         element.tags?.pedestrian ||
-        element.tags?.route === 'foot' ||
-        element.tags?.route === 'hiking' ||
-        element.tags?.route === 'walking' ||
-        element.tags?.amenity === 'bench' ||
-        element.tags?.amenity === 'drinking_water' ||
-        element.tags?.highway === 'street_lamp' ||
-        element.tags?.lit === 'yes' ||
+        element.tags?.route === "foot" ||
+        element.tags?.route === "hiking" ||
+        element.tags?.route === "walking" ||
+        element.tags?.amenity === "bench" ||
+        element.tags?.amenity === "drinking_water" ||
+        element.tags?.highway === "street_lamp" ||
+        element.tags?.lit === "yes" ||
         element.tags?.traffic_calming ||
         element.tags?.maxspeed ||
         element.tags?.zone_traffic ||
-        element.tags?.natural === 'tree_row' ||
-        element.tags?.natural === 'hedge' ||
-        element.tags?.landuse === 'grass' ||
-        element.tags?.landuse === 'meadow' ||
-        (element.tags?.highway === 'crossing' && element.tags?.foot === 'designated') ||
-        (element.tags?.highway === 'crossing' && element.tags?.crossing === 'zebra') ||
-        (element.tags?.highway === 'crossing' && element.tags?.crossing === 'traffic_signals') ||
-        (element.tags?.highway === 'crossing' && element.tags?.crossing === 'uncontrolled') ||
-        (element.tags?.bridge === 'yes' && (element.tags?.highway === 'footway' || element.tags?.highway === 'pedestrian' || element.tags?.highway === 'path')) ||
-        (element.tags?.tunnel === 'yes' && (element.tags?.highway === 'footway' || element.tags?.highway === 'pedestrian' || element.tags?.highway === 'path'))) {
-      actualCategory = 'walkability';
-    }
-    // PRIORITY 9: Check for accessibility features
-    else if (element.tags?.barrier === 'kerb' ||
-             element.tags?.kerb === 'lowered' ||
-             element.tags?.kerb === 'flush' ||
-             element.tags?.highway === 'elevator' ||
-             (element.tags?.highway === 'steps' && element.tags?.incline) ||
-             (element.tags?.amenity === 'parking' && element.tags?.access === 'designated') ||
-             element.tags?.tactile_paving === 'yes' ||
-             (element.tags?.amenity === 'toilets' && element.tags?.wheelchair === 'yes')) {
-      actualCategory = 'accessibility';
-    }
-    // PRIORITY 10: Check for safety features (lowest priority - catch-all for safety-related items)
-    else if (element.tags?.highway === 'street_lamp' ||
-             element.tags?.lit === 'yes' ||
-             element.tags?.highway === 'crossing' ||
-             element.tags?.traffic_calming ||
-             element.tags?.maxspeed ||
-             element.tags?.sidewalk ||
-             element.tags?.amenity === 'fire_station' ||
-             element.tags?.amenity === 'hospital' ||
-             element.tags?.man_made === 'surveillance' ||
-             element.tags?.surveillance_type === 'camera') {
-      actualCategory = 'safety';
-    }
-    
-    const name = element.tags?.name || 
-                 element.tags?.shop || 
-                 element.tags?.amenity || 
-                 element.tags?.leisure || 
-                 element.tags?.highway ||
-                 element.tags?.traffic_calming ||
-                 element.tags?.crossing_ref ||
-                 element.tags?.man_made ||
-                 element.tags?.barrier ||
-                 element.tags?.kerb ||
-                 element.tags?.wheelchair ||
-                 element.tags?.tactile_paving ||
-                 `${actualCategory} facility`;
+        element.tags?.natural === "tree_row" ||
+        element.tags?.natural === "hedge" ||
+        element.tags?.landuse === "grass" ||
+        element.tags?.landuse === "meadow" ||
+        (element.tags?.highway === "crossing" &&
+          element.tags?.foot === "designated") ||
+        (element.tags?.highway === "crossing" &&
+          element.tags?.crossing === "zebra") ||
+        (element.tags?.highway === "crossing" &&
+          element.tags?.crossing === "traffic_signals") ||
+        (element.tags?.highway === "crossing" &&
+          element.tags?.crossing === "uncontrolled") ||
+        (element.tags?.bridge === "yes" &&
+          (element.tags?.highway === "footway" ||
+            element.tags?.highway === "pedestrian" ||
+            element.tags?.highway === "path")) ||
+        (element.tags?.tunnel === "yes" &&
+          (element.tags?.highway === "footway" ||
+            element.tags?.highway === "pedestrian" ||
+            element.tags?.highway === "path"))
+      ) {
+        actualCategory = "walkability";
+      }
+      // PRIORITY 9: Check for accessibility features
+      else if (
+        element.tags?.barrier === "kerb" ||
+        element.tags?.kerb === "lowered" ||
+        element.tags?.kerb === "flush" ||
+        element.tags?.highway === "elevator" ||
+        (element.tags?.highway === "steps" && element.tags?.incline) ||
+        (element.tags?.amenity === "parking" &&
+          element.tags?.access === "designated") ||
+        element.tags?.tactile_paving === "yes" ||
+        (element.tags?.amenity === "toilets" &&
+          element.tags?.wheelchair === "yes")
+      ) {
+        actualCategory = "accessibility";
+      }
+      // PRIORITY 10: Check for safety features (lowest priority - catch-all for safety-related items)
+      else if (
+        element.tags?.highway === "street_lamp" ||
+        element.tags?.lit === "yes" ||
+        element.tags?.highway === "crossing" ||
+        element.tags?.traffic_calming ||
+        element.tags?.maxspeed ||
+        element.tags?.sidewalk ||
+        element.tags?.amenity === "fire_station" ||
+        element.tags?.amenity === "hospital" ||
+        element.tags?.man_made === "surveillance" ||
+        element.tags?.surveillance_type === "camera"
+      ) {
+        actualCategory = "safety";
+      }
 
-    // Calculate contribution using the new distance decay function
-    contribution = calculateDistanceContribution(distance, actualCategory);
+      const name =
+        element.tags?.name ||
+        element.tags?.shop ||
+        element.tags?.amenity ||
+        element.tags?.leisure ||
+        element.tags?.highway ||
+        element.tags?.traffic_calming ||
+        element.tags?.crossing_ref ||
+        element.tags?.man_made ||
+        element.tags?.barrier ||
+        element.tags?.kerb ||
+        element.tags?.wheelchair ||
+        element.tags?.tactile_paving ||
+        `${actualCategory} facility`;
 
-    const facility = {
-      id: `${actualCategory}-${element.id || index}`,
-      name: String(name),
-      category: actualCategory,
-      lng,
-      lat,
-      distance: Math.round(distance),
-      contribution,
-      tags: element.tags // Store original OSM tags for icon selection
-    };
+      // Calculate contribution using the new distance decay function
+      contribution = calculateDistanceContribution(distance, actualCategory);
 
-     
-           // Log ALL market facilities for debugging
-      if (actualCategory === 'market') {
+      const facility = {
+        id: `${actualCategory}-${element.id || index}`,
+        name: String(name),
+        category: actualCategory,
+        lng,
+        lat,
+        distance: Math.round(distance),
+        contribution,
+        tags: element.tags, // Store original OSM tags for icon selection
+      };
+
+      // Log ALL market facilities for debugging
+      if (actualCategory === "market") {
         // Specifically log gas stations and fuel facilities
-        if (element.tags?.amenity === 'fuel' || 
-            element.tags?.amenity === 'gas_station' || 
-            element.tags?.amenity === 'petrol_station' ||
-            element.tags?.amenity === 'service_station' ||
-            (element.tags?.name && (
-              element.tags.name.toLowerCase().includes('spbu') ||
-              element.tags.name.toLowerCase().includes('pom bensin') ||
-              element.tags.name.toLowerCase().includes('gas station') ||
-              element.tags.name.toLowerCase().includes('petrol') ||
-              element.tags.name.toLowerCase().includes('fuel') ||
-              element.tags.name.toLowerCase().includes('pertamina') ||
-              element.tags.name.toLowerCase().includes('shell') ||
-              element.tags.name.toLowerCase().includes('bp') ||
-              element.tags.name.toLowerCase().includes('esso') ||
-              element.tags.name.toLowerCase().includes('caltex')
-            ))) {
+        if (
+          element.tags?.amenity === "fuel" ||
+          element.tags?.amenity === "gas_station" ||
+          element.tags?.amenity === "petrol_station" ||
+          element.tags?.amenity === "service_station" ||
+          (element.tags?.name &&
+            (element.tags.name.toLowerCase().includes("spbu") ||
+              element.tags.name.toLowerCase().includes("pom bensin") ||
+              element.tags.name.toLowerCase().includes("gas station") ||
+              element.tags.name.toLowerCase().includes("petrol") ||
+              element.tags.name.toLowerCase().includes("fuel") ||
+              element.tags.name.toLowerCase().includes("pertamina") ||
+              element.tags.name.toLowerCase().includes("shell") ||
+              element.tags.name.toLowerCase().includes("bp") ||
+              element.tags.name.toLowerCase().includes("esso") ||
+              element.tags.name.toLowerCase().includes("caltex")))
+        ) {
           // Gas station/fuel facility found
         }
       }
-     
-     // Log walkability facilities for debugging
-     if (actualCategory === 'walkability') {
-       // Walkability facility found
-     }
-     
-     // Log facilities with specific names we're looking for
-     if (name.toLowerCase().includes('bebe') || 
-         name.toLowerCase().includes('narsis') || 
-         name.toLowerCase().includes('store') || 
-         name.toLowerCase().includes('kedai')) {
-       // Found facility with target name
-     }
-    
-    // Log safety facilities for debugging
-    if (actualCategory === 'safety') {
-      // Safety facility found
-    }
-    
-    // Log accessibility facilities for debugging
-    if (actualCategory === 'accessibility') {
-      // Accessibility facility found
-    }
-    
-    // Log police facilities for debugging
-    if (actualCategory === 'police') {
-      // Police facility found
-    }
-    
-    // Log religious facilities for debugging
-    if (actualCategory === 'religious') {
-      // Religious facility found
-    }
-    
-    // Log health facilities for debugging
-    if (actualCategory === 'health') {
-      // Health facility found
-    }
-    
-    return facility;
-  }).filter(f => {
-    // Use category-specific max distances from decay config
-    const decayConfig = {
-      health: 1000,
-      education: 1000,
-      market: 1000,
-      transport: 1000,
-      walkability: 1000, // New category for walkability infrastructure
-      recreation: 1000,
-      safety: 1000,
-      accessibility: 1000,
-      police: 1000,
-      religious: 1000
-    };
-    const maxDistance = decayConfig[f.category as keyof typeof decayConfig] || 1000;
-    return f.distance <= maxDistance;
-  });
-  
+
+      // Log walkability facilities for debugging
+      if (actualCategory === "walkability") {
+        // Walkability facility found
+      }
+
+      // Log facilities with specific names we're looking for
+      if (
+        name.toLowerCase().includes("bebe") ||
+        name.toLowerCase().includes("narsis") ||
+        name.toLowerCase().includes("store") ||
+        name.toLowerCase().includes("kedai")
+      ) {
+        // Found facility with target name
+      }
+
+      // Log safety facilities for debugging
+      if (actualCategory === "safety") {
+        // Safety facility found
+      }
+
+      // Log accessibility facilities for debugging
+      if (actualCategory === "accessibility") {
+        // Accessibility facility found
+      }
+
+      // Log police facilities for debugging
+      if (actualCategory === "police") {
+        // Police facility found
+      }
+
+      // Log religious facilities for debugging
+      if (actualCategory === "religious") {
+        // Religious facility found
+      }
+
+      // Log health facilities for debugging
+      if (actualCategory === "health") {
+        // Health facility found
+      }
+
+      return facility;
+    })
+    .filter((f) => {
+      // Use category-specific max distances from decay config
+      const decayConfig = {
+        health: 1000,
+        education: 1000,
+        market: 1000,
+        transport: 1000,
+        walkability: 1000, // New category for walkability infrastructure
+        recreation: 1000,
+        safety: 1000,
+        accessibility: 1000,
+        police: 1000,
+        religious: 1000,
+      };
+      const maxDistance =
+        decayConfig[f.category as keyof typeof decayConfig] || 1000;
+      return f.distance <= maxDistance;
+    });
+
   // Deduplicate facilities based on coordinates and name
   const uniqueFacilities = facilities.reduce((acc: Facility[], facility) => {
-    const existingIndex = acc.findIndex(existing => {
+    const existingIndex = acc.findIndex((existing) => {
       // Check if coordinates are very close (within 50 meters - more lenient)
       const coordDistance = calculateDistance(
-        existing.lat, existing.lng, 
-        facility.lat, facility.lng
+        existing.lat,
+        existing.lng,
+        facility.lat,
+        facility.lng
       );
-      
+
       // Check if names are similar (case-insensitive)
       const existingName = existing.name.toLowerCase().trim();
       const facilityName = facility.name.toLowerCase().trim();
-      
-      const nameSimilar = existingName === facilityName ||
-                         existingName.includes(facilityName) ||
-                         facilityName.includes(existingName) ||
-                         // Handle common variations
-                         (existingName.includes('sd') && facilityName.includes('sd')) ||
-                         (existingName.includes('sekolah') && facilityName.includes('sekolah'));
-      
+
+      const nameSimilar =
+        existingName === facilityName ||
+        existingName.includes(facilityName) ||
+        facilityName.includes(existingName) ||
+        // Handle common variations
+        (existingName.includes("sd") && facilityName.includes("sd")) ||
+        (existingName.includes("sekolah") && facilityName.includes("sekolah"));
+
       const isDuplicate = coordDistance < 50 && nameSimilar;
-      
+
       if (isDuplicate) {
         // Duplicate found
       }
-      
+
       return isDuplicate;
     });
-    
+
     if (existingIndex === -1) {
       acc.push(facility);
     } else {
       // Keep the one with better contribution score
       if (facility.contribution > acc[existingIndex].contribution) {
-
         acc[existingIndex] = facility;
       }
     }
-    
-    return acc;
-  }, []);
-  
-  // Additional deduplication by ID (in case same element appears multiple times)
-  const finalFacilities = uniqueFacilities.reduce((acc: Facility[], facility) => {
-    const existingIndex = acc.findIndex(existing => existing.id === facility.id);
-    if (existingIndex === -1) {
-      acc.push(facility);
-    } else {
 
-    }
     return acc;
   }, []);
-  
+
+  // Additional deduplication by ID (in case same element appears multiple times)
+  const finalFacilities = uniqueFacilities.reduce(
+    (acc: Facility[], facility) => {
+      const existingIndex = acc.findIndex(
+        (existing) => existing.id === facility.id
+      );
+      if (existingIndex === -1) {
+        acc.push(facility);
+      } else {
+      }
+      return acc;
+    },
+    []
+  );
 
   return finalFacilities;
 };
@@ -799,30 +862,33 @@ const calculateSubScores = (facilityCounts: {
   religious: number;
 }) => {
   // Services score (health + education + markets + religious)
-  const servicesScore = Math.min(100, 
-    (facilityCounts.health * 5.5) + 
-    (facilityCounts.education * 5) + 
-    (facilityCounts.market * 5.5) + 
-    (facilityCounts.religious * 3)
+  const servicesScore = Math.min(
+    100,
+    facilityCounts.health * 5.5 +
+      facilityCounts.education * 5 +
+      facilityCounts.market * 5.5 +
+      facilityCounts.religious * 3
   );
 
   // Mobility score (transport facilities + walkability infrastructure)
-  const mobilityScore = Math.min(100, 
-    (facilityCounts.transport * 8) + // Reduced weight since we now include walkability
-    (facilityCounts.walkability * 4) // Walkability infrastructure contributes to mobility
+  const mobilityScore = Math.min(
+    100,
+    facilityCounts.transport * 8 + // Reduced weight since we now include walkability
+      facilityCounts.walkability * 4 // Walkability infrastructure contributes to mobility
   );
 
   // Safety score based on safety infrastructure and facilities + healthcare (emergency response) + police
-  const safetyScore = Math.min(100, 
+  const safetyScore = Math.min(
+    100,
 
     // Safety infrastructure (street lighting, crossings, traffic signals, etc.)
-    (facilityCounts.safety * 3) +
-    // Healthcare facilities contribute to safety (emergency response)
-    (facilityCounts.health * 2) +
-    // Police facilities contribute to safety
-    (facilityCounts.police * 4) +
-    // Accessibility features contribute to safety
-    (facilityCounts.accessibility * 2)
+    facilityCounts.safety * 3 +
+      // Healthcare facilities contribute to safety (emergency response)
+      facilityCounts.health * 2 +
+      // Police facilities contribute to safety
+      facilityCounts.police * 4 +
+      // Accessibility features contribute to safety
+      facilityCounts.accessibility * 2
   );
 
   // Environment score (recreation facilities)
@@ -838,11 +904,10 @@ const calculateSubScores = (facilityCounts: {
 
 // Main function to calculate livability score
 export const calculateLivabilityScore = async (
-  lat: number, 
-  lng: number, 
+  lat: number,
+  lng: number,
   address: string
 ): Promise<{ data: LiveabilityData; facilities: Facility[] }> => {
-  
   const allFacilities: Facility[] = [];
   const facilityCounts = {
     health: 0,
@@ -854,55 +919,88 @@ export const calculateLivabilityScore = async (
     safety: 0,
     accessibility: 0,
     police: 0,
-    religious: 0
+    religious: 0,
   };
 
-  // Query each category
+  // Query all categories in parallel for faster processing
   const categories = Object.keys(FACILITY_DISTANCES);
-  for (const category of categories) {
-    try {
-      const query = generateOverpassQuery(category, lat, lng);
-      const elements = await queryOverpassAPI(query, lat, lng);
-      const facilities = processFacilities(elements, category, lat, lng);
-      
-      // Debug logging for walkability specifically
-      if (category === 'walkability') {
-        
+
+  // Use Promise.allSettled to fetch all categories simultaneously
+  const results = await Promise.allSettled(
+    categories.map(async (category) => {
+      try {
+        const query = generateOverpassQuery(category, lat, lng);
+        const elements = await queryOverpassAPI(query, lat, lng);
+        const facilities = processFacilities(elements, category, lat, lng);
+        return { category, facilities };
+      } catch (error) {
+        console.error(`Error fetching ${category}:`, error);
+        return { category, facilities: [] };
       }
-      
+    })
+  );
+
+  // Process results
+  results.forEach((result) => {
+    if (result.status === "fulfilled") {
+      const { facilities } = result.value;
       allFacilities.push(...facilities);
-      
+
       // Count facilities by their actual category after processing
-      facilities.forEach(facility => {
+      facilities.forEach((facility) => {
         facilityCounts[facility.category as keyof typeof facilityCounts]++;
       });
-      
-      // Add small delay to be respectful to the API
-      await new Promise(resolve => setTimeout(resolve, 200));
-    } catch (error) {
-      // Error fetching category data
     }
-  }
+  });
+
+  // ===== ADD CUSTOM POIs =====
+  const customPOIs = customPoiService.getPOIsNearLocation(lat, lng, 1000);
+
+  const customFacilities: Facility[] = customPOIs.map((poi) => {
+    const distance = calculateDistance(lat, lng, poi.lat, poi.lng);
+    const contribution = calculateDistanceContribution(distance, poi.category);
+
+    return {
+      id: poi.id,
+      name: `${poi.name} (Custom)`,
+      category: poi.category === "custom" ? "recreation" : poi.category,
+      lng: poi.lng,
+      lat: poi.lat,
+      distance: Math.round(distance),
+      contribution,
+      tags: { custom: true },
+    };
+  });
+
+  // Add custom facilities to the main list
+  allFacilities.push(...customFacilities);
+
+  // Update facility counts with custom POIs
+  customFacilities.forEach((facility) => {
+    if (facilityCounts.hasOwnProperty(facility.category)) {
+      facilityCounts[facility.category as keyof typeof facilityCounts]++;
+    }
+  });
+  // ===== END CUSTOM POI INTEGRATION =====
 
   // Calculate scores
   const subscores = calculateSubScores(facilityCounts);
-  
+
   // Overall score is weighted average of sub-scores
-  const overall = (
+  const overall =
     subscores.services * 0.3 +
     subscores.mobility * 0.25 +
     subscores.safety * 0.25 +
-    subscores.environment * 0.2
-  );
+    subscores.environment * 0.2;
 
   const data: LiveabilityData = {
     overall,
     subscores,
     location: {
       address,
-      coordinates: { lng, lat }
+      coordinates: { lng, lat },
     },
-    facilityCounts
+    facilityCounts,
   };
 
   return { data, facilities: allFacilities };
@@ -928,6 +1026,6 @@ export const getEmptyLivabilityData = (): LiveabilityData => ({
     safety: 0,
     accessibility: 0,
     police: 0,
-    religious: 0
-  }
+    religious: 0,
+  },
 });

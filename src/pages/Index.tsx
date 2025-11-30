@@ -4,18 +4,22 @@ import Map from "@/components/Map";
 import LocationSearch from "@/components/LocationSearch";
 import LiveabilityScore from "@/components/LiveabilityScore";
 import ControlPanel from "@/components/ControlPanel";
+import CustomPoiManager from "@/components/CustomPoiManager";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { SatelliteToggle } from "@/components/SatelliteToggle";
 import LanguageToggle from "@/components/LanguageToggle";
 import {
   calculateLivabilityScore,
   getEmptyLivabilityData,
 } from "@/services/livabilityService";
 import { searchHistoryService } from "@/services/searchHistoryService";
+import { customPoiService } from "@/services/customPoiService";
 import { Menu, X, BarChart3, Target, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UserModeToggle from "@/components/UserModeToggle";
 import { useUserMode } from "@/components/UserModeProvider";
 import { useLanguage } from "@/components/LanguageProvider";
+import { TutorialPopup } from "@/components/TutorialPopup";
 
 const Index = () => {
   const { mode: userMode } = useUserMode();
@@ -39,7 +43,11 @@ const Index = () => {
   const [dragStartY, setDragStartY] = useState<number | null>(null);
   const [dragStartHeight, setDragStartHeight] = useState<number>(0);
   const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(true);
+  const [isCustomPoiMode, setIsCustomPoiMode] = useState(false);
+  const [customPOIs, setCustomPOIs] = useState<any[]>([]);
   const radiusOptions = [250, 500, 1000];
+  // Satellite basemap toggle
+  const [satelliteEnabled, setSatelliteEnabled] = useState(false);
 
   // Facility category visibility state
   const [visibleCategories, setVisibleCategories] = useState<
@@ -95,8 +103,11 @@ const Index = () => {
     []
   );
 
-  const handleAnalyzeLocation = useCallback(async () => {
-    if (!selectedLocation) return;
+  const handleRecalculate = useCallback(async () => {
+    if (!selectedLocation) {
+      toast.error(t("pleaseSelectLocation"));
+      return;
+    }
 
     setIsCalculating(true);
 
@@ -136,17 +147,50 @@ const Index = () => {
     } finally {
       setIsCalculating(false);
     }
-  }, [selectedLocation]);
+  }, [selectedLocation, t]);
 
-  const handleRecalculate = useCallback(() => {
-    if (selectedLocation) {
-      handleAnalyzeLocation();
-    }
-  }, [selectedLocation, handleAnalyzeLocation]);
+  const handleAnalyzeLocation = useCallback(async () => {
+    handleRecalculate();
+  }, [handleRecalculate]);
 
   const handleToggleRadius = useCallback(() => {
     setShowRadius((prev) => !prev);
   }, []);
+
+  const handleToggleSatellite = useCallback(() => {
+    setSatelliteEnabled((prev) => !prev);
+  }, []);
+
+  const toggleCustomPoiMode = useCallback(() => {
+    setIsCustomPoiMode((prev) => !prev);
+  }, []);
+
+  // Function to reload all custom POIs
+  const reloadCustomPOIs = useCallback(() => {
+    const allPOIs = customPoiService.getAllPOIs();
+    const poisAsFacilities = allPOIs.map((poi) => ({
+      id: poi.id,
+      name: poi.name,
+      category: poi.category,
+      lng: poi.lng,
+      lat: poi.lat,
+      distance: 0,
+      contribution: 0,
+      tags: { custom: true },
+    }));
+    setCustomPOIs(poisAsFacilities);
+  }, []);
+
+  // Handler to pan map to POI location when clicked
+  const handlePOIClick = useCallback((lng: number, lat: number) => {
+    setSelectedLocation({ lng, lat });
+    toast.success(t("map.panned.to.place"));
+  }, [t]);
+
+  // Load all custom POIs on initial mount and when in Custom POI Mode
+  useEffect(() => {
+    reloadCustomPOIs();
+  }, [isCustomPoiMode, reloadCustomPOIs]);
 
   // Control panel toggle handler
   const toggleControlPanel = useCallback(() => {
@@ -323,32 +367,58 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Mode, Language, and Theme Toggles */}
+            {/* Mode, Language, Theme, and Satellite Toggles */}
             <div className="flex items-center gap-2 mt-4">
+              <Button
+                variant={isCustomPoiMode ? "default" : "outline"}
+                size="sm"
+                onClick={toggleCustomPoiMode}
+                className="h-9 px-3"
+                title={
+                  isCustomPoiMode
+                    ? t("exit.my.places.mode")
+                    : t("enter.my.places.mode")
+                }
+              >
+                <MapPin className="w-4 h-4 mr-2" />
+                <span className="hidden lg:inline">{t("my.places")}</span>
+              </Button>
               <UserModeToggle />
               <LanguageToggle />
               <ThemeToggle />
+              <SatelliteToggle
+                satelliteEnabled={satelliteEnabled}
+                onToggle={handleToggleSatellite}
+              />
             </div>
           </div>
 
           {/* Sidebar Content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            <LiveabilityScore data={livabilityData} />
-            <ControlPanel
-              showRadius={showRadius}
-              onToggleRadius={handleToggleRadius}
-              radiusOptions={radiusOptions}
-              isCalculating={isCalculating}
-              selectedLocation={selectedLocation}
-              onRecalculate={handleRecalculate}
-              onAnalyzeLocation={handleAnalyzeLocation}
-              hasCalculated={hasCalculated}
-              livabilityData={livabilityData}
-              facilities={facilities}
-              visibleCategories={visibleCategories}
-              onToggleCategory={handleToggleCategory}
-              onToggleAllCategories={handleToggleAllCategories}
-            />
+          <div className="flex-1 overflow-y-auto control-panel-scrollbar p-6 space-y-6">
+            {!isCustomPoiMode ? (
+              <>
+                <LiveabilityScore data={livabilityData} />
+                <ControlPanel
+                  showRadius={showRadius}
+                  onToggleRadius={handleToggleRadius}
+                  radiusOptions={radiusOptions}
+                  isCalculating={isCalculating}
+                  selectedLocation={selectedLocation}
+                  onRecalculate={handleRecalculate}
+                  onAnalyzeLocation={handleAnalyzeLocation}
+                  hasCalculated={hasCalculated}
+                  livabilityData={livabilityData}
+                  facilities={facilities}
+                />
+              </>
+            ) : (
+              <CustomPoiManager
+                selectedLocation={selectedLocation}
+                onPOIChanged={reloadCustomPOIs}
+                onPOIClick={handlePOIClick}
+                isFullMode={true}
+              />
+            )}
           </div>
         </div>
       )}
@@ -360,11 +430,15 @@ const Index = () => {
             handleLocationSelect(lng, lat, address)
           }
           selectedLocation={selectedLocation}
-          facilities={facilities}
+          facilities={
+            isCustomPoiMode ? [...facilities, ...customPOIs] : facilities
+          }
           showRadius={showRadius && hasCalculated && facilities.length > 0}
           radiusOptions={radiusOptions}
           hasCalculated={hasCalculated}
           visibleCategories={visibleCategories}
+          satelliteEnabled={satelliteEnabled}
+          isCustomPoiMode={isCustomPoiMode}
         />
 
         {/* Top Left Controls - Floating on Map */}
@@ -373,7 +447,7 @@ const Index = () => {
             variant="outline"
             size="sm"
             onClick={toggleControlPanel}
-            className="hidden lg:flex items-center justify-center w-10 h-10 bg-white/90 hover:bg-white border-0 shadow-lg backdrop-blur-sm rounded-full"
+            className="hidden lg:flex items-center justify-center w-10 h-10 bg-background/90 hover:bg-background border-border shadow-lg backdrop-blur-sm rounded-full"
             title={
               isControlPanelVisible
                 ? t("hide.control.panel")
@@ -456,28 +530,54 @@ const Index = () => {
                       <UserModeToggle />
                       <LanguageToggle />
                       <ThemeToggle />
+                      <SatelliteToggle
+                        satelliteEnabled={satelliteEnabled}
+                        onToggle={handleToggleSatellite}
+                      />
                     </div>
                   </div>
 
-                  {hasCalculated && livabilityData ? (
-                    <LiveabilityScore data={livabilityData} />
-                  ) : null}
+                  <div className="mb-4">
+                    <Button
+                      variant={isCustomPoiMode ? "default" : "outline"}
+                      size="sm"
+                      onClick={toggleCustomPoiMode}
+                      className="w-full h-10"
+                    >
+                      <MapPin className="w-4 h-4 mr-2" />
+                      {isCustomPoiMode
+                        ? t("exit.custom.poi.mode")
+                        : t("enter.custom.poi.mode")}
+                    </Button>
+                  </div>
 
-                  <ControlPanel
-                    showRadius={showRadius}
-                    onToggleRadius={handleToggleRadius}
-                    radiusOptions={radiusOptions}
-                    isCalculating={isCalculating}
-                    selectedLocation={selectedLocation}
-                    onRecalculate={handleRecalculate}
-                    onAnalyzeLocation={handleAnalyzeLocation}
-                    hasCalculated={hasCalculated}
-                    livabilityData={livabilityData}
-                    facilities={facilities}
-                    visibleCategories={visibleCategories}
-                    onToggleCategory={handleToggleCategory}
-                    onToggleAllCategories={handleToggleAllCategories}
-                  />
+                  {!isCustomPoiMode ? (
+                    <>
+                      {hasCalculated && livabilityData ? (
+                        <LiveabilityScore data={livabilityData} />
+                      ) : null}
+
+                      <ControlPanel
+                        showRadius={showRadius}
+                        onToggleRadius={handleToggleRadius}
+                        radiusOptions={radiusOptions}
+                        isCalculating={isCalculating}
+                        selectedLocation={selectedLocation}
+                        onRecalculate={handleRecalculate}
+                        onAnalyzeLocation={handleAnalyzeLocation}
+                        hasCalculated={hasCalculated}
+                        livabilityData={livabilityData}
+                        facilities={facilities}
+                      />
+                    </>
+                  ) : (
+                    <CustomPoiManager
+                      selectedLocation={selectedLocation}
+                      onPOIChanged={reloadCustomPOIs}
+                      onPOIClick={handlePOIClick}
+                      isFullMode={true}
+                    />
+                  )}
                 </div>
               </div>
             ) : (
@@ -551,6 +651,7 @@ const Index = () => {
       )}
 
       {/* Cache Manager for Development */}
+      <TutorialPopup />
     </div>
   );
 };

@@ -75,8 +75,17 @@
     --radius: 0.75rem;
 
     /* Custom gradients */
-    --gradient-livability: linear-gradient(135deg, hsl(210 65% 24%), hsl(135 60% 45%));
-    --gradient-score: linear-gradient(90deg, hsl(0 70% 55%), hsl(25 85% 60%), hsl(135 60% 45%));
+    --gradient-livability: linear-gradient(
+      135deg,
+      hsl(210 65% 24%),
+      hsl(135 60% 45%)
+    );
+    --gradient-score: linear-gradient(
+      90deg,
+      hsl(0 70% 55%),
+      hsl(25 85% 60%),
+      hsl(135 60% 45%)
+    );
     --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 15% 98%));
 
     /* Shadows */
@@ -88,19 +97,19 @@
     --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     /* Control Panel specific colors for light mode - Updated to deep blue */
-    --control-primary: 210 65% 24%;      /* #153A64 - new deep blue primary */
-    --control-secondary: 210 65% 45%;    /* Lighter blue for secondary */
-    --control-accent: 210 65% 24%;       /* Same as primary for consistency */
-    --control-border: 210 65% 24%;       /* Same as primary for borders */
-    --control-bg: 210 65% 95%;           /* Very light version of primary */
-    --control-bg-light: 210 65% 97%;     /* Light version of primary */
-    
+    --control-primary: 210 65% 24%; /* #153A64 - new deep blue primary */
+    --control-secondary: 210 65% 45%; /* Lighter blue for secondary */
+    --control-accent: 210 65% 24%; /* Same as primary for consistency */
+    --control-border: 210 65% 24%; /* Same as primary for borders */
+    --control-bg: 210 65% 95%; /* Very light version of primary */
+    --control-bg-light: 210 65% 97%; /* Light version of primary */
+
     /* Light theme gradients for control panel text boxes - Updated to blue theme */
     --control-gradient-light: linear-gradient(135deg, #e6f2ff, #cce7ff);
     --control-gradient-medium: linear-gradient(135deg, #f0f7ff, #d9ecff);
-    
+
     /* Beautiful button gradients that complement the blue theme */
-    --button-gradient-primary: linear-gradient(135deg, #153A64, #1e4a72);
+    --button-gradient-primary: linear-gradient(135deg, #153a64, #1e4a72);
     --button-gradient-hover: linear-gradient(135deg, #1e4a72, #265a80);
 
     --sidebar-background: 0 0% 98%;
@@ -190,9 +199,22 @@
     --radius: 0.75rem;
 
     /* Custom gradients for dark mode */
-    --gradient-livability: linear-gradient(135deg, hsl(210 65% 45%), hsl(135 60% 55%));
-    --gradient-score: linear-gradient(90deg, hsl(0 70% 65%), hsl(25 85% 70%), hsl(135 60% 55%));
-    --gradient-card: linear-gradient(180deg, hsl(222.2 84% 4.9%), hsl(217.2 32.6% 17.5%));
+    --gradient-livability: linear-gradient(
+      135deg,
+      hsl(210 65% 45%),
+      hsl(135 60% 55%)
+    );
+    --gradient-score: linear-gradient(
+      90deg,
+      hsl(0 70% 65%),
+      hsl(25 85% 70%),
+      hsl(135 60% 55%)
+    );
+    --gradient-card: linear-gradient(
+      180deg,
+      hsl(222.2 84% 4.9%),
+      hsl(217.2 32.6% 17.5%)
+    );
 
     /* Shadows for dark mode */
     --shadow-elegant: 0 4px 20px -4px hsl(210 40% 98% / 0.15);
@@ -203,12 +225,12 @@
     --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     /* Control Panel specific colors for dark mode - using the same blue palette but brighter */
-    --control-primary: 210 65% 65%;      /* Brighter blue for dark mode */
-    --control-secondary: 210 65% 70%;    /* Brighter blue for dark mode */
-    --control-accent: 210 65% 55%;       /* Medium blue for dark mode */
-    --control-border: 210 65% 45%;       /* Darker blue border for dark mode */
-    --control-bg: 210 65% 15%;           /* Very dark blue background for dark mode */
-    --control-bg-light: 210 65% 20%;     /* Dark blue background for dark mode */
+    --control-primary: 210 65% 65%; /* Brighter blue for dark mode */
+    --control-secondary: 210 65% 70%; /* Brighter blue for dark mode */
+    --control-accent: 210 65% 55%; /* Medium blue for dark mode */
+    --control-border: 210 65% 45%; /* Darker blue border for dark mode */
+    --control-bg: 210 65% 15%; /* Very dark blue background for dark mode */
+    --control-bg-light: 210 65% 20%; /* Dark blue background for dark mode */
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -228,65 +250,101 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
-  
+
   /* Mobile button improvements */
   .mobile-button-primary {
     @apply bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-lg;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  
+
   .mobile-button-primary:active {
     transform: scale(0.98);
   }
-  
+
   /* Mobile card improvements */
   .mobile-card {
     @apply bg-card/95 backdrop-blur-md border border-border;
     box-shadow: var(--shadow-elegant);
   }
-  
+
   /* Mobile sidebar improvements */
   .mobile-sidebar {
     @apply bg-background/95 backdrop-blur-md border-l border-border;
     box-shadow: var(--shadow-map);
   }
-  
+
   /* Mobile header improvements */
   .mobile-header {
     @apply bg-card/95 backdrop-blur-md border-b border-border;
     box-shadow: var(--shadow-elegant);
   }
-  
+
   /* Mobile touch improvements */
   .mobile-touch {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
-  
+
   /* Mobile scrollbar improvements */
   .mobile-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted)) transparent;
   }
-  
+
   .mobile-scrollbar::-webkit-scrollbar {
     width: 4px;
   }
-  
+
   .mobile-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
-  
+
   .mobile-scrollbar::-webkit-scrollbar-thumb {
     background: hsl(var(--muted));
     border-radius: 2px;
   }
-  
+
+  /* Control panel scrollbar - Livabl style */
+  .control-panel-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
+  }
+
+  .control-panel-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .control-panel-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .control-panel-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.2);
+    border-radius: 10px;
+  }
+
+  .control-panel-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.3);
+  }
+
+  /* Dark theme scrollbar adjustments */
+  .dark .control-panel-scrollbar {
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  }
+
+  .dark .control-panel-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+  }
+
+  .dark .control-panel-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+  }
+
   /* Mobile animation improvements */
   .mobile-fade-in {
     animation: mobileFadeIn 0.3s ease-out;
   }
-  
+
   @keyframes mobileFadeIn {
     from {
       opacity: 0;
@@ -297,16 +355,16 @@
       transform: translateY(0);
     }
   }
-  
+
   /* Light theme gradients for control panel text boxes */
   .light .control-panel-box {
     background: var(--control-gradient-light) !important;
   }
-  
+
   .light .control-panel-box-medium {
     background: var(--control-gradient-medium) !important;
   }
-  
+
   /* Force switch sizing for facilities category - Small on mobile, normal on desktop */
   .facility-switch {
     height: 20px !important;
@@ -316,16 +374,16 @@
     max-height: 20px !important;
     max-width: 36px !important;
   }
-  
+
   /* Dark theme: Make facility switches more green */
   .dark .facility-switch[data-state="checked"] {
     background-color: hsl(142, 76%, 36%) !important;
   }
-  
+
   .dark .facility-switch[data-state="checked"]:hover {
     background-color: hsl(142, 76%, 42%) !important;
   }
-  
+
   .facility-switch .switch-thumb {
     height: 16px !important;
     width: 16px !important;
@@ -334,7 +392,7 @@
     max-height: 20px !important;
     max-width: 20px !important;
   }
-  
+
   /* Desktop: Use normal switch size like map control */
   @media (min-width: 768px) {
     .facility-switch {
@@ -345,7 +403,7 @@
       max-height: 24px !important;
       max-width: 44px !important;
     }
-    
+
     .facility-switch .switch-thumb {
       height: 20px !important;
       width: 20px !important;
@@ -355,37 +413,37 @@
       max-width: 20px !important;
     }
   }
-  
+
   /* Mobile switch improvements - Keep switches at normal size */
   .mobile-switch {
     @apply h-6 w-11;
     min-height: 24px;
     min-width: 44px;
   }
-  
+
   .mobile-switch-thumb {
     @apply h-5 w-5;
     min-height: 20px;
     min-width: 20px;
   }
-  
+
   .mobile-switch[data-state="checked"] {
     @apply bg-primary;
   }
-  
+
   .mobile-switch[data-state="unchecked"] {
     @apply bg-input;
   }
-  
+
   /* Ensure switches look normal on all screen sizes */
   .mobile-switch[data-state="checked"] {
     background-color: hsl(var(--primary));
   }
-  
+
   .mobile-switch[data-state="unchecked"] {
     background-color: hsl(var(--input));
   }
-  
+
   /* Mobile touch improvements for switches */
   .mobile-switch {
     touch-action: manipulation;
@@ -394,20 +452,18 @@
     position: relative;
     overflow: hidden;
   }
-  
+
   .mobile-switch:active {
     transform: scale(0.95);
     transition: transform 0.1s ease;
   }
-  
+
   /* Ensure switch container doesn't shift */
   .mobile-switch-container {
     position: relative;
     overflow: hidden;
   }
-  
 
-  
   /* Mobile radius toggle improvements */
   .mobile-radius-toggle {
     @apply flex items-center justify-between p-3 rounded-lg;
@@ -415,28 +471,28 @@
     backdrop-filter: blur(8px);
     border: 1px solid hsl(var(--border) / 0.3);
   }
-  
+
   .mobile-radius-toggle:hover {
     background: hsl(var(--card) / 0.9);
     border-color: hsl(var(--border) / 0.5);
   }
-  
+
   /* Mobile switch container improvements */
   .mobile-switch-container {
     @apply flex items-center gap-2;
     min-height: 44px; /* Better touch target */
   }
-  
+
   /* Mobile swipe-up improvements */
   .mobile-swipe-up {
     transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
   }
-  
+
   .mobile-swipe-up:active {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
   }
-  
+
   /* Mobile results card improvements */
   .mobile-results-card {
     @apply cursor-pointer;
@@ -444,24 +500,25 @@
     user-select: none;
     -webkit-user-select: none;
   }
-  
+
   .mobile-results-card:hover {
     transform: translateY(-1px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   }
-  
+
   .mobile-results-card:active {
     transform: translateY(0);
     transition: transform 0.1s ease-out;
   }
-  
+
   /* Swipe indicator improvements */
   .mobile-swipe-indicator {
     animation: mobileSwipeHint 2s ease-in-out infinite;
   }
-  
+
   @keyframes mobileSwipeHint {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0);
       opacity: 0.7;
     }
@@ -470,7 +527,7 @@
       opacity: 1;
     }
   }
-  
+
   /* Bottom sheet improvements - Optimized for performance */
   .mobile-bottom-sheet {
     box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.3);
@@ -482,7 +539,7 @@
     backface-visibility: hidden;
     perspective: 1000px;
   }
-  
+
   .mobile-bottom-sheet-handle {
     cursor: grab;
     touch-action: pan-y;
@@ -492,16 +549,16 @@
     will-change: transform;
     transform: translateZ(0);
   }
-  
+
   .mobile-bottom-sheet-handle:active {
     cursor: grabbing;
   }
-  
+
   /* Bottom sheet snap animations - Optimized */
   .mobile-bottom-sheet-snap {
     transition: height 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
-  
+
   /* Bottom sheet content transitions - Optimized */
   .mobile-bottom-sheet-content {
     transition: opacity 0.15s ease-out;
@@ -509,22 +566,22 @@
     will-change: opacity;
     transform: translateZ(0);
   }
-  
+
   .mobile-bottom-sheet-content.collapsed {
     opacity: 0.8;
     /* Optimize for swipe-up gestures */
     touch-action: pan-y;
     cursor: grab;
   }
-  
+
   .mobile-bottom-sheet-content.collapsed:active {
     cursor: grabbing;
   }
-  
+
   .mobile-bottom-sheet-content.expanded {
     opacity: 1;
   }
-  
+
   /* Ensure proper scrolling in bottom sheet - Optimized */
   .mobile-bottom-sheet .mobile-scrollbar {
     -webkit-overflow-scrolling: touch;
@@ -537,7 +594,7 @@
     will-change: scroll-position;
     transform: translateZ(0);
   }
-  
+
   /* Fix LiveabilityScore scrolling issues in desktop control panel */
   .control-panel-scrollbar .bg-gradient-card {
     transform: none !important;
@@ -545,65 +602,77 @@
     backface-visibility: visible !important;
     perspective: none !important;
   }
-  
-  .control-panel-scrollbar .bg-gradient-card *:not(button):not([role="button"]):not(.hover\\:shadow-md):not(.transition-all) {
+
+  .control-panel-scrollbar
+    .bg-gradient-card
+    *:not(button):not([role="button"]):not(.hover\\:shadow-md):not(
+      .transition-all
+    ) {
     transform: none !important;
     will-change: auto !important;
   }
-  
+
   /* Ensure LiveabilityScore cards don't move during scroll - but preserve interactive elements */
-  .control-panel-scrollbar .space-y-4 > div:not(:has(button)):not(:has([role="button"])),
-  .control-panel-scrollbar .space-y-5 > div:not(:has(button)):not(:has([role="button"])) {
+  .control-panel-scrollbar
+    .space-y-4
+    > div:not(:has(button)):not(:has([role="button"])),
+  .control-panel-scrollbar
+    .space-y-5
+    > div:not(:has(button)):not(:has([role="button"])) {
     transform: none !important;
     will-change: auto !important;
   }
-  
+
   /* Additional fixes for LiveabilityScore component - but preserve interactive elements */
-  .control-panel-scrollbar .space-y-4:not(:has(button)):not(:has([role="button"])),
-  .control-panel-scrollbar .space-y-5:not(:has(button)):not(:has([role="button"])) {
+  .control-panel-scrollbar
+    .space-y-4:not(:has(button)):not(:has([role="button"])),
+  .control-panel-scrollbar
+    .space-y-5:not(:has(button)):not(:has([role="button"])) {
     transform: none !important;
     will-change: auto !important;
   }
-  
+
   /* Prevent any hover transforms from affecting scroll */
   .control-panel-scrollbar .hover\\:shadow-md:hover {
     transform: none !important;
   }
-  
+
   /* Ensure progress bars and badges don't move */
   .control-panel-scrollbar .progress,
   .control-panel-scrollbar .badge {
     transform: none !important;
     will-change: auto !important;
   }
-  
+
   /* Fix score breakdown specific issues */
   .control-panel-scrollbar .space-y-2 > div {
     transform: none !important;
     will-change: auto !important;
     transition: none !important;
   }
-  
+
   /* Fix Progress component movement - but preserve interactive elements */
   .control-panel-scrollbar .progress,
-  .control-panel-scrollbar .progress *:not(button):not([role="button"]):not(.hover\\:shadow-md):not(.transition-all) {
+  .control-panel-scrollbar
+    .progress
+    *:not(button):not([role="button"]):not(.hover\\:shadow-md):not(
+      .transition-all
+    ) {
     transform: none !important;
     will-change: auto !important;
     transition: none !important;
   }
-  
+
   /* Fix dynamic color classes that might cause movement */
   .control-panel-scrollbar [class*="bg-"] {
     transform: none !important;
     will-change: auto !important;
   }
-  
 
-  
   .mobile-bottom-sheet .mobile-scrollbar::-webkit-scrollbar {
     display: none;
   }
-  
+
   /* Prevent touch events from interfering with scrolling - Optimized */
   .mobile-bottom-sheet-content {
     touch-action: pan-y;
@@ -614,7 +683,7 @@
     will-change: scroll-position;
     transform: translateZ(0);
   }
-  
+
   /* Force scroll container to work properly - Optimized */
   .mobile-bottom-sheet .overflow-y-auto {
     height: 100% !important;
@@ -624,16 +693,16 @@
     will-change: scroll-position;
     transform: translateZ(0);
   }
-  
+
   /* Dragging state */
   .mobile-bottom-sheet-dragging {
     transition: none !important;
   }
-  
+
   .mobile-bottom-sheet-dragging .mobile-bottom-sheet-handle {
     cursor: grabbing;
   }
-  
+
   .mobile-bottom-sheet-dragging .mobile-bottom-sheet-handle > div {
     background-color: hsl(var(--muted-foreground) / 0.6) !important;
     transform: scale(1.1);
@@ -648,30 +717,30 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+    font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
     /* Improve touch scrolling on mobile */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: none;
   }
-  
+
   /* Fix LiveabilityScore scrolling issues in desktop control panel */
   .control-panel-scrollbar .bg-gradient-card {
     transform: none !important;
     will-change: auto !important;
   }
-  
+
   .control-panel-scrollbar .bg-gradient-card * {
     transform: none !important;
     will-change: auto !important;
   }
-  
+
   /* Ensure LiveabilityScore cards don't move during scroll */
   .control-panel-scrollbar .space-y-4 > div,
   .control-panel-scrollbar .space-y-5 > div {
     transform: none !important;
     will-change: auto !important;
   }
-  
+
   /* Fix Progress component movement */
   .control-panel-scrollbar .progress,
   .control-panel-scrollbar .progress * {
@@ -679,40 +748,51 @@
     will-change: auto !important;
     transition: none !important;
   }
-  
+
   /* Fix Progress indicator specifically */
   .control-panel-scrollbar .progress [data-radix-progress-indicator] {
     transform: none !important;
     transition: none !important;
   }
-  
+
   /* Override any transform styles on progress elements */
   .control-panel-scrollbar [style*="transform"] {
     transform: none !important;
   }
-  
+
   /* Fix score breakdown specific issues */
   .control-panel-scrollbar .space-y-2 > div {
     transform: none !important;
     will-change: auto !important;
   }
-  
+
   /* Comprehensive fix for all LiveabilityScore elements - but preserve button animations */
   .control-panel-scrollbar .space-y-4,
   .control-panel-scrollbar .space-y-5,
-  .control-panel-scrollbar .space-y-4 *:not(button):not([role="button"]):not(.hover\\:shadow-md):not(.transition-all),
-  .control-panel-scrollbar .space-y-5 *:not(button):not([role="button"]):not(.hover\\:shadow-md):not(.transition-all) {
+  .control-panel-scrollbar
+    .space-y-4
+    *:not(button):not([role="button"]):not(.hover\\:shadow-md):not(
+      .transition-all
+    ),
+  .control-panel-scrollbar
+    .space-y-5
+    *:not(button):not([role="button"]):not(.hover\\:shadow-md):not(
+      .transition-all
+    ) {
     transform: none !important;
     will-change: auto !important;
     transition: none !important;
   }
-  
+
   /* Fix any elements with background gradients - but preserve interactive elements */
-  .control-panel-scrollbar [class*="bg-"]:not(button):not([role="button"]):not(.hover\\:shadow-md):not(.transition-all) {
+  .control-panel-scrollbar
+    [class*="bg-"]:not(button):not([role="button"]):not(.hover\\:shadow-md):not(
+      .transition-all
+    ) {
     transform: none !important;
     will-change: auto !important;
   }
-  
+
   /* Disable problematic animations in control panel that cause scrolling issues */
   .control-panel-scrollbar .bg-gradient-card,
   .control-panel-scrollbar .space-y-4,
@@ -722,14 +802,14 @@
     animation: none !important;
     transition: none !important;
   }
-  
+
   /* Fix gradient card background issues */
   .control-panel-scrollbar .bg-gradient-card {
     background: hsl(var(--card)) !important;
     transform: none !important;
     will-change: auto !important;
   }
-  
+
   /* Fix dynamic color classes */
   .control-panel-scrollbar [class*="bg-services"],
   .control-panel-scrollbar [class*="bg-mobility"],
@@ -738,7 +818,7 @@
     transform: none !important;
     will-change: auto !important;
   }
-  
+
   /* Fix text color classes */
   .control-panel-scrollbar [class*="text-services"],
   .control-panel-scrollbar [class*="text-mobility"],
@@ -747,30 +827,33 @@
     transform: none !important;
     will-change: auto !important;
   }
-  
+
   /* Fix any elements with inline styles */
   .control-panel-scrollbar [style] {
     transform: none !important;
     will-change: auto !important;
   }
-  
-
 
   /* Mobile-specific improvements */
   @media (max-width: 768px) {
     /* Improve touch targets */
-    button, [role="button"] {
+    button,
+    [role="button"] {
       min-height: 44px;
     }
 
     /* Better text readability on mobile */
-    p, span, div {
+    p,
+    span,
+    div {
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
 
     /* Prevent zoom on input focus */
-    input, select, textarea {
+    input,
+    select,
+    textarea {
       font-size: 16px;
     }
 
@@ -887,7 +970,7 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
