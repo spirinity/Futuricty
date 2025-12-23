@@ -3,11 +3,7 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
-  "functions": {
-    "api/gemini.ts": {
-      "runtime": "edge"
-    }
-  },
+
   "rewrites": [
     {
       "source": "/api/(.*)",
