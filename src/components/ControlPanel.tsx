@@ -556,8 +556,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 className="h-8 px-2 text-xs hover:bg-[hsl(var(--control-primary))]/10"
               >
                 {Object.values(visibleCategories).every((v) => !v)
-                  ? t("show.all")
-                  : t("hide.all")}
+                  ? t("show.all.facilities")
+                  : t("hide.all.facilities")}
               </Button>
             </div>
 
