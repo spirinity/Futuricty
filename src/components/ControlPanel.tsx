@@ -56,6 +56,9 @@ interface ControlPanelProps {
   }>;
   className?: string;
   onExportPdf?: () => void;
+  visibleCategories: Record<string, boolean>;
+  onToggleCategory: (category: string) => void;
+  onToggleAllCategories: () => void;
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -70,6 +73,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   livabilityData,
   facilities,
   className,
+  visibleCategories,
+  onToggleCategory,
+  onToggleAllCategories,
 }) => {
   const { t, language } = useLanguage();
   const [aiSummary, setAiSummary] = useState<string>("");
@@ -527,6 +533,53 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               </div>
             );
           })()}
+
+        {/* Facility Visibility Section */}
+        {hasCalculated && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 pb-2 border-b border-[hsl(var(--control-border))]">
+              <div className="p-2 bg-[hsl(var(--control-bg-light))] rounded-lg">
+                <Settings className="w-5 h-5 text-[hsl(var(--control-primary))]" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-[hsl(var(--control-primary))]">
+                  {t("facility.visibility")}
+                </h3>
+                <p className="text-xs text-[hsl(var(--control-primary))]/70">
+                  {t("toggle.facility.markers")}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onToggleAllCategories}
+                className="h-8 px-2 text-xs hover:bg-[hsl(var(--control-primary))]/10"
+              >
+                {Object.values(visibleCategories).every((v) => !v)
+                  ? t("show.all")
+                  : t("hide.all")}
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {Object.keys(visibleCategories).map((category) => (
+                <div
+                  key={category}
+                  className="flex items-center justify-between p-2 rounded-lg border border-border/30 bg-card/50 hover:bg-card/80 transition-colors"
+                >
+                  <span className="text-xs font-medium capitalize mr-2 leading-tight">
+                    {t(category) || category}
+                  </span>
+                  <Switch
+                    checked={visibleCategories[category]}
+                    onCheckedChange={() => onToggleCategory(category)}
+                    className="scale-75 origin-right flex-shrink-0"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Map Control Section */}
         <div className="space-y-3">

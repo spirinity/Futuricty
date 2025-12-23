@@ -11,9 +11,13 @@ interface CacheConfig {
 }
 
 class CacheService {
-  private cache = new Map<string, CacheEntry<any>>();
+  private readonly STORAGE_PREFIX = "f_cache_";
   private readonly defaultTTL = 5 * 60 * 1000; // 5 minutes
-  private readonly maxSize = 100; // Maximum cache entries
+  private readonly maxSize = 100; // Limit entries to avoid localStorage bloat
+
+  constructor() {
+    this.prune();
+  }
 
   // Generate cache key from parameters
   private generateKey(prefix: string, params: Record<string, any>): string {
@@ -24,51 +28,144 @@ class CacheService {
     return `${prefix}:${sortedParams}`;
   }
 
+  // Get full storage key
+  private getStorageKey(key: string): string {
+    return `${this.STORAGE_PREFIX}${key}`;
+  }
+
+  // Prune expired or excessive entries
+  private prune(): void {
+    try {
+      const keys = [];
+      const now = Date.now();
+
+      // Gather all our keys
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(this.STORAGE_PREFIX)) {
+          keys.push(key);
+        }
+      }
+
+      // Check expiry and collect valid entries
+      const validEntries: { key: string; timestamp: number }[] = [];
+
+      keys.forEach((key) => {
+        try {
+          const item = localStorage.getItem(key);
+          if (item) {
+            const parsed = JSON.parse(item);
+            if (now - parsed.timestamp > parsed.ttl) {
+              localStorage.removeItem(key); // Remove expired
+            } else {
+              validEntries.push({ key, timestamp: parsed.timestamp });
+            }
+          }
+        } catch (e) {
+          localStorage.removeItem(key); // Remove corrupted
+        }
+      });
+
+      // Enforce Max Size (remove oldest)
+      if (validEntries.length > this.maxSize) {
+        validEntries.sort((a, b) => a.timestamp - b.timestamp); // Oldest first
+        const toRemove = validEntries.slice(0, validEntries.length - this.maxSize);
+        toRemove.forEach((entry) => localStorage.removeItem(entry.key));
+      }
+    } catch (e) {
+      console.warn("Failed to prune cache:", e);
+    }
+  }
+
   // Get cached data
   get<T>(key: string): T | null {
-    const entry = this.cache.get(key);
-    if (!entry) return null;
+    try {
+      const storageKey = this.getStorageKey(key);
+      const item = localStorage.getItem(storageKey);
+      
+      if (!item) return null;
 
-    // Check if entry is expired
-    if (Date.now() - entry.timestamp > entry.ttl) {
-      this.cache.delete(key);
+      const entry: CacheEntry<T> = JSON.parse(item);
+
+      // Check if entry is expired
+      if (Date.now() - entry.timestamp > entry.ttl) {
+        localStorage.removeItem(storageKey);
+        return null;
+      }
+
+      return entry.data;
+    } catch (e) {
+      console.error("Cache read error:", e);
       return null;
     }
-
-    return entry.data;
   }
 
   // Set cached data
   set<T>(key: string, data: T, ttl: number = this.defaultTTL): void {
-    // Implement LRU eviction if cache is full
-    if (this.cache.size >= this.maxSize) {
-      const oldestKey = this.cache.keys().next().value;
-      this.cache.delete(oldestKey);
+    try {
+      const storageKey = this.getStorageKey(key);
+      const entry: CacheEntry<T> = {
+        data,
+        timestamp: Date.now(),
+        ttl,
+      };
+      
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(entry));
+      } catch (e: any) {
+        // Handle QuotaExceededError
+        if (e.name === "QuotaExceededError" || e.code === 22) {
+          this.prune(); // Try to make space
+          try {
+             // Try one more time
+             localStorage.setItem(storageKey, JSON.stringify(entry));
+          } catch(retryError) {
+             console.warn("Cache quota exceeded, could not save entry.");
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Cache write error:", e);
     }
-
-    this.cache.set(key, {
-      data,
-      timestamp: Date.now(),
-      ttl,
-    });
   }
 
   // Clear specific cache entry
   delete(key: string): boolean {
-    return this.cache.delete(key);
+    try {
+      localStorage.removeItem(this.getStorageKey(key));
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   // Clear all cache
   clear(): void {
-    this.cache.clear();
+    try {
+       const keysToRemove = [];
+       for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(this.STORAGE_PREFIX)) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    } catch (e) {
+      console.error("Cache clear error:", e);
+    }
   }
 
   // Get cache statistics
   getStats() {
+    // Rough estimate based on keys starting with prefix
+    let count = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+        if (localStorage.key(i)?.startsWith(this.STORAGE_PREFIX)) count++;
+    }
     return {
-      size: this.cache.size,
+      size: count,
       maxSize: this.maxSize,
-      keys: Array.from(this.cache.keys()),
+      keys: [], // Too expensive to list all keys in stat
     };
   }
 
@@ -112,6 +209,19 @@ class CacheService {
       fetchFn,
       ttl
     );
+  }
+
+  // Get cached location data without fetching
+  getCachedLocationData<T>(
+    lat: number,
+    lng: number,
+    dataType: string
+  ): T | null {
+    const key = this.generateKey(`location-${dataType}`, {
+      lat: lat.toFixed(3),
+      lng: lng.toFixed(3),
+    });
+    return this.get<T>(key);
   }
 
   // Cache search results with shorter TTL

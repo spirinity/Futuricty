@@ -142,6 +142,10 @@ const translations = {
     'language': 'Language',
     'english': 'English',
     'indonesian': 'Indonesian',
+    'facility.visibility': 'Facility Visibility',
+    'toggle.facility.markers': 'Toggle individual facility markers',
+    'show.all.facilities': 'Show All Facilities',
+    'hide.all.facilities': 'Hide All Facilities',
     
     // User Mode
     'residents': 'Residents',
@@ -352,6 +356,10 @@ const translations = {
     'language': 'Bahasa',
     'english': 'Inggris',
     'indonesian': 'Indonesia',
+    'facility.visibility': 'Visibilitas Fasilitas',
+    'toggle.facility.markers': 'Tampilkan/sembunyikan penanda fasilitas',
+    'show.all.facilities': 'Tampilkan Semua',
+    'hide.all.facilities': 'Sembunyikan Semua',
     
     // User Mode
     'residents': 'Masyarakat',

@@ -86,7 +86,7 @@ export default async function handler(req: Request): Promise<Response> {
 
     // Call Gemini API
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: {
@@ -104,7 +104,7 @@ export default async function handler(req: Request): Promise<Response> {
           ],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 100, // Reduced from 150 for faster response
+            maxOutputTokens: 2000, // Increased for detailed analysis
             topP: 0.8,
             topK: 40,
           },

@@ -98,7 +98,7 @@ const callBackendAPI = async (
       const prompt = generatePrompt(locationData, userMode, language);
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: {
@@ -116,7 +116,7 @@ const callBackendAPI = async (
             ],
             generationConfig: {
               temperature: 0.7,
-              maxOutputTokens: 500,
+              maxOutputTokens: 2500,
               topP: 0.8,
               topK: 40,
             },
@@ -223,77 +223,79 @@ Nearby: ${locationData.nearbyFacilities.slice(0, 5).join(", ")}`;
   if (language === "id") {
     switch (userMode) {
       case "residents":
-        return `Bertindaklah sebagai konsultan properti ahli. Analisis lokasi ini untuk tempat tinggal dalam 3-4 kalimat.
-PENTING:
-1. Hubungkan data fasilitas dengan gaya hidup. Contoh: Banyak sekolah = cocok untuk keluarga/mahasiswa.
-2. Jika skor rendah, berikan konteks jujur tapi konstruktif (misal: "Mungkin kurang tenang, tapi sangat strategis untuk akses harian").
-3. Perhatikan konteks lokal Indonesia.
-4. JANGAN gunakan format bold/tebal sama sekali. Gunakan teks biasa.
+        return `Anda adalah konsultan properti ahli. Berikan analisis SINGKAT & PADAT (sekitar 100 kata) tentang lokasi ini.
 
-${baseData}`;
+INSTRUKSI KHUSUS:
+- Tulis dalam 1-2 paragraf narasi saja.
+- DILARANG menggunakan bold, italic, atau list angka/poin.
+- JANGAN SEBUTKAN ANGKA SKOR SPESIFIK (misal: "skor 100", "(277)"). Gunakan kata deskriptif (misal: "sangat tinggi", "jarang", "memadai").
+- Langsung bahas inti: kaitan kualitas lokasi dengan kenyamanan hidup sehari-hari.
+
+Data referensi: ${baseData}`;
 
       case "business-owner":
-        return `Bertindaklah sebagai konsultan strategi bisnis ahli. Analisis potensi bisnis lokasi ini dalam 3-4 kalimat.
-INSTRUKSI KHUSUS:
-1. JANGAN terpaku pada skor keseluruhan yang rendah. Cari "hidden gem" dari komposisi fasilitas.
-2. KONTEKS PENDIDIKAN: Jika ada fasilitas pendidikan (sekolah/kampus), SANGAT DISARANKAN menyebutkan peluang bisnis: Kos-kosan, Warung Makan Murah (Warteg/Ayam Geprek), Laundry Kiloan, Fotocopy/Printing, atau Cafe tempat nongkrong.
-3. KONTEKS PERKANTORAN/TRANSIT: Jika dekat transportasi/perkantoran, sarankan Kuliner Cepat Saji atau Minimarket.
-4. Berikan saran jenis bisnis spesifik yang cocok dengan demografi sekitar (misal: pelajar butuh harga murah).
-5. JANGAN gunakan format bold/tebal sama sekali. Gunakan teks biasa.
+        return `Anda adalah konsultan bisnis. Berikan analisis potensi bisnis yang SINGKAT (sekitar 100 kata).
 
-${baseData}`;
+INSTRUKSI KHUSUS:
+- Tulis dalam 1-2 paragraf narasi saja.
+- DILARANG menggunakan bold, italic, atau list angka/poin.
+- JANGAN SEBUTKAN ANGKA SKOR SPESIFIK. Gunakan deskripsi kualitatif.
+- Langsung sebutkan peluang bisnis utama dan alasannya berdasarkan data.
+
+Data referensi: ${baseData}`;
 
       case "urban-planner":
-        return `Bertindaklah sebagai ahli tata kota. Berikan analisis perencanaan kota untuk lokasi ini dalam 3-4 kalimat.
-Fokus pada:
-1. Identifikasi kesenjangan infrastruktur kritis (misal: ada sekolah tapi kurang trotoar/transportasi).
-2. Peluang pengembangan kawasan (misal: potensi menjadi kawasan transit-oriented development).
-3. Saran perbaikan spesifik untuk meningkatkan skor kelayakan huni.
-4. JANGAN gunakan format bold/tebal sama sekali. Gunakan teks biasa.
+        return `Anda adalah Urban Planner. Berikan audit tata kota yang SINGKAT (sekitar 100 kata).
 
-${baseData}`;
+INSTRUKSI KHUSUS:
+- Tulis dalam 1-2 paragraf narasi saja.
+- DILARANG menggunakan bold, italic, atau list angka/poin.
+- JANGAN SEBUTKAN ANGKA SKOR SPESIFIK. Gunakan deskripsi kualitatif.
+- Fokus pada evaluasi infrastruktur utama dan satu rekomendasi perbaikan paling krusial.
+
+Data referensi: ${baseData}`;
 
       default:
-        return `Ringkas kelayakan huni lokasi ini dalam 3-4 kalimat. Fokus pada kekuatan dan keunikan area. Gunakan bahasa yang ramah. JANGAN gunakan format bold.
-
-${baseData}`;
+        return `Berikan analisis kelayakan huni singkat (maks 100 kata) dalam 1 paragraf tanpa formatting (bold/list) dan TANPA MENYEBUT ANGKA SKOR. Data: ${baseData}`;
     }
   } else {
+    // English Prompts
     switch (userMode) {
       case "residents":
-        return `Act as an expert property consultant. Analyze this location for living in 3-4 sentences.
-IMPORTANT:
-1. Connect facility data to lifestyle. E.g., Many schools = good for families/students.
-2. If the score is low, provide honest but constructive context (e.g., "May be noisy, but highly strategic for daily access").
-3. Do NOT use bold formatting at all. Use plain text only.
+        return `You are a Property Consultant. Provide a CONCISE analysis (approx 100 words) of this location.
 
-${baseData}`;
+STRICT INSTRUCTIONS:
+- Write exactly 1-2 paragraphs of narrative.
+- NO bold text, italics, or bullet points.
+- DO NOT MENTION SPECIFIC SCORE NUMBERS (e.g., "score 100", "(277)"). Use descriptive words (e.g., "excellent", "scarce", "abundant").
+- Get straight to the point: how livable is this area?
+
+Reference Data: ${baseData}`;
 
       case "business-owner":
-        return `Act as an expert business strategy consultant. Analyze the business potential of this location in 3-4 sentences.
-SPECIAL INSTRUCTIONS:
-1. Do NOT rely solely on the overall score. Look for "hidden gems" in the facility composition.
-2. EDUCATION CONTEXT: If there are education facilities, STRONGLY SUGGEST businesses like: Student Housing (Boarding House), Affordable Food, Laundry Services, or Study Cafes.
-3. TRANSIT CONTEXT: If near transport hubs, suggest Convenience Stores or Quick Service Restaurants.
-4. Provide specific business type recommendations suitable for the local demographics.
-5. Do NOT use bold formatting at all. Use plain text only.
+        return `You are a Business Consultant. Provide a CONCISE business analysis (approx 100 words).
 
-${baseData}`;
+STRICT INSTRUCTIONS:
+- Write exactly 1-2 paragraphs of narrative.
+- NO bold text, italics, or bullet points.
+- DO NOT MENTION SPECIFIC SCORE NUMBERS. Use qualitative descriptions.
+- Immediately identify key business opportunities and why they fit here.
+
+Reference Data: ${baseData}`;
 
       case "urban-planner":
-        return `Act as an urban planning expert. Provide an analysis for this location in 3-4 sentences.
-Focus on:
-1. Identifying critical infrastructure gaps.
-2. Development opportunities (e.g., potential for Transit-Oriented Development).
-3. Specific improvement suggestions.
-4. Do NOT use bold formatting at all. Use plain text only.
+        return `You are an Urban Planner. Provide a CONCISE urban audit (approx 100 words).
 
-${baseData}`;
+STRICT INSTRUCTIONS:
+- Write exactly 1-2 paragraphs of narrative.
+- NO bold text, italics, or bullet points.
+- DO NOT MENTION SPECIFIC SCORE NUMBERS. Use qualitative descriptions.
+- Focus on key infrastructure pros/cons and one main recommendation.
+
+Reference Data: ${baseData}`;
 
       default:
-        return `Summarize this location's livability in 3-4 sentences. Focus on strengths and uniqueness. Be conversational. Do NOT use bold formatting.
-
-${baseData}`;
+        return `Provide a concise livability analysis (max 100 words) in 1 paragraph. NO bold/italics/lists. NO SPECIFIC NUMBERS. Data: ${baseData}`;
     }
   }
 }

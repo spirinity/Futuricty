@@ -57,7 +57,7 @@ const Index = () => {
     education: true,
     market: true,
     transport: true,
-    walkability: true,
+    walkability: false,
     safety: true,
     accessibility: true,
     police: true,
@@ -409,6 +409,9 @@ const Index = () => {
                   hasCalculated={hasCalculated}
                   livabilityData={livabilityData}
                   facilities={facilities}
+                  visibleCategories={visibleCategories}
+                  onToggleCategory={handleToggleCategory}
+                  onToggleAllCategories={handleToggleAllCategories}
                 />
               </>
             ) : (
@@ -568,6 +571,9 @@ const Index = () => {
                         hasCalculated={hasCalculated}
                         livabilityData={livabilityData}
                         facilities={facilities}
+                        visibleCategories={visibleCategories}
+                        onToggleCategory={handleToggleCategory}
+                        onToggleAllCategories={handleToggleAllCategories}
                       />
                     </>
                   ) : (

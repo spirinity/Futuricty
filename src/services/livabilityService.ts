@@ -332,32 +332,29 @@ const queryOverpassAPI = async (
     lng,
     `overpass-${cacheUtils.hash(formattedQuery)}`,
     async () => {
-      try {
-        const response = await fetch(
-          "https://overpass-api.de/api/interpreter",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: formattedQuery,
-          }
-        );
+      // REMOVED TRY-CATCH HERE so errors propagate to the retry logic!
+      const response = await fetch("https://overpass-api.de/api/interpreter", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: formattedQuery,
+      });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data.elements || [];
-      } catch (error) {
-        console.error("Overpass API error:", error);
-        return [];
+      if (!response.ok) {
+        // Throw detailed error with status for retry logic
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
+      return data.elements || [];
     },
     30 * 60 * 1000 // 30 minutes cache for facility data
   );
 };
+
+// ... existing code ...
+
 
 // Calculate distance-based contribution using gradual decay
 const calculateDistanceContribution = (
@@ -848,73 +845,83 @@ const processFacilities = (
   return finalFacilities;
 };
 
-// Calculate sub-scores based on facility counts and distances
-const calculateSubScores = (facilityCounts: {
-  health: number;
-  education: number;
-  market: number;
-  transport: number;
-  walkability: number; // New category for walkability infrastructure
-  recreation: number;
-  safety: number;
-  accessibility: number;
-  police: number;
-  religious: number;
-}) => {
-  // Services score (health + education + markets + religious)
-  const servicesScore = Math.min(
-    100,
-    facilityCounts.health * 5.5 +
-      facilityCounts.education * 5 +
-      facilityCounts.market * 5.5 +
-      facilityCounts.religious * 3
-  );
+  // Calculate sub-scores using DISTANCE-BASED CONTRIBUTIONS
+  // This is much more accurate than just counting facilities.
+  // Example: A park 50m away (score 9.5) is worth more than a park 900m away (score 2.0)
+  const calculateSubScores = (
+    categoryScores: Record<string, number>, // Sum of contributions
+    counts: Record<string, number> // Keep counts for specific logic if needed
+  ) => {
+    // Helper to cap score at 100
+    const cap = (val: number) => Math.min(100, Math.round(val));
 
-  // Mobility score (transport facilities + walkability infrastructure)
-  const mobilityScore = Math.min(
-    100,
-    facilityCounts.transport * 8 + // Reduced weight since we now include walkability
-      facilityCounts.walkability * 4 // Walkability infrastructure contributes to mobility
-  );
+    // Services Score
+    // Weighting: Health/Market are critical, Education/Religious are important
+    // Base divisors loosely based on "target score" (e.g., getting 20-30 contribution points = great)
+    const servicesScore = cap(
+      categoryScores.health * 1.2 + // e.g. 2 good clinics (2x8=16) * 1.2 = ~19
+        categoryScores.education * 1.0 +
+        categoryScores.market * 0.8 + // Markets are common, lower weight to prevent saturation
+        categoryScores.religious * 0.8
+    );
 
-  // Safety score based on safety infrastructure and facilities + healthcare (emergency response) + police
-  const safetyScore = Math.min(
-    100,
+    // Mobility Score
+    // Transport nodes + Walkability quality
+    const mobilityScore = cap(
+      categoryScores.transport * 1.5 + categoryScores.walkability * 0.5
+      // Walkability often has MANY items (lamps, benches), so lower weight per item prevents inflation
+    );
 
-    // Safety infrastructure (street lighting, crossings, traffic signals, etc.)
-    facilityCounts.safety * 3 +
-      // Healthcare facilities contribute to safety (emergency response)
-      facilityCounts.health * 2 +
-      // Police facilities contribute to safety
-      facilityCounts.police * 4 +
-      // Accessibility features contribute to safety
-      facilityCounts.accessibility * 2
-  );
+    // Safety Score
+    // Composed of Safety infra + Police + Hospital access + Accessibility
+    const safetyScore = cap(
+      categoryScores.safety * 0.6 + // Safety infra (lamps etc) is abundant, weight low
+        categoryScores.police * 2.0 + // Police stations are rare, weight high
+        categoryScores.health * 0.8 + // Hospital access aids safety
+        categoryScores.accessibility * 1.0
+    );
 
-  // Environment score (recreation facilities)
-  const environmentScore = Math.min(100, facilityCounts.recreation * 15);
+    // Environment Score
+    // Recreation (Parks, etc)
+    const environmentScore = cap(categoryScores.recreation * 2.5); // 4 good parks (4x10=40) * 2.5 = 100
 
-  return {
-    services: servicesScore,
-    mobility: mobilityScore,
-    safety: safetyScore,
-    environment: environmentScore,
+    return {
+      services: servicesScore,
+      mobility: mobilityScore,
+      safety: safetyScore,
+      environment: environmentScore,
+    };
   };
-};
 
-// Main function to calculate livability score
+  // Main function to calculate livability score
 export const calculateLivabilityScore = async (
   lat: number,
   lng: number,
   address: string
 ): Promise<{ data: LiveabilityData; facilities: Facility[] }> => {
   const allFacilities: Facility[] = [];
+  
+  // Track COUNT (quantity) for UI display
   const facilityCounts = {
     health: 0,
     education: 0,
     market: 0,
     transport: 0,
-    walkability: 0, // New category for walkability infrastructure
+    walkability: 0,
+    recreation: 0,
+    safety: 0,
+    accessibility: 0,
+    police: 0,
+    religious: 0,
+  };
+
+  // Track SCORE (quality/contribution sum) for calculation
+  const categoryScores = {
+    health: 0,
+    education: 0,
+    market: 0,
+    transport: 0,
+    walkability: 0,
     recreation: 0,
     safety: 0,
     accessibility: 0,
@@ -925,30 +932,148 @@ export const calculateLivabilityScore = async (
   // Query all categories in parallel for faster processing
   const categories = Object.keys(FACILITY_DISTANCES);
 
-  // Use Promise.allSettled to fetch all categories simultaneously
-  const results = await Promise.allSettled(
-    categories.map(async (category) => {
+  // Helper helper to add delay
+  const delay = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
+  // Helper to fetch with retry logic
+  const fetchCategoryWithRetry = async (
+    category: string,
+    lat: number,
+    lng: number,
+    retries = 3 // Increased retries
+  ) => {
+    // Check CACHE first to skip delay if possible
+    const tempQuery = generateOverpassQuery(category, lat, lng);
+    const formattedQuery = tempQuery
+      .replace(/{lat}/g, lat.toString())
+      .replace(/{lng}/g, lng.toString());
+    
+    // Hash needs to match what queryOverpassAPI uses: overpass-{hash}
+    const cachedElements = cacheService.getCachedLocationData<any[]>(
+      lat, 
+      lng, 
+      `overpass-${cacheUtils.hash(formattedQuery)}`
+    );
+
+    if (cachedElements) {
+       console.log(`%c[Cache] ⚡ Hit for ${category}, skipping API call.`, "color: #8b5cf6");
+       const facilities = processFacilities(cachedElements, category, lat, lng);
+       return { category, facilities, status: "fulfilled", fromCache: true };
+    }
+
+    for (let i = 0; i <= retries; i++) {
       try {
+        console.log(
+          `%c[Overpass] Fetching ${category}... (Attempt ${i + 1}/${
+            retries + 1
+          })`,
+          "color: #3b82f6"
+        );
         const query = generateOverpassQuery(category, lat, lng);
         const elements = await queryOverpassAPI(query, lat, lng);
         const facilities = processFacilities(elements, category, lat, lng);
-        return { category, facilities };
-      } catch (error) {
-        console.error(`Error fetching ${category}:`, error);
-        return { category, facilities: [] };
+        console.log(
+          `%c[Overpass] ✅ Success ${category}: Found ${facilities.length} items.`,
+          "color: #22c55e"
+        );
+        return { category, facilities, status: "fulfilled", fromCache: false };
+      } catch (error: any) {
+        console.warn(
+          `[Overpass] ⚠️ Failed ${category} (Attempt ${i + 1}):`,
+          error
+        );
+
+        // Special handling for rate limits (429) or timeouts (504)
+        const errorMessage = error.message || "";
+        const isRateLimit = errorMessage.includes("429");
+        const isTimeout = errorMessage.includes("504");
+
+        if (i === retries) throw error; // Throw if last retry fails
+
+        let waitTime = 2000 * (i + 1); // Default exponential: 2s, 4s, 6s
+
+        if (isRateLimit) {
+          console.log(
+            `%c[Overpass] Hit Rate Limit! Cooling down for 5s...`,
+            "color: #f59e0b"
+          );
+          waitTime = 5000; // Wait 5s specifically for rate limits
+        }
+
+        console.log(`[Overpass] Retrying ${category} in ${waitTime / 1000}s...`);
+        await delay(waitTime);
       }
-    })
-  );
+    }
+    return { category, facilities: [], status: "rejected" };
+  };
+
+  // Execute requests SEQUENTIALLY to avoid Rate Limiting (429)
+  const results = [];
+  for (const category of categories) {
+    try {
+      const result = await fetchCategoryWithRetry(category, lat, lng);
+      results.push(result);
+      
+      // Only delay if we actually hit the API (not from cache)
+      if (!result.fromCache) {
+         // Increased delay between SUCCESSFUL requests to be safer
+         await delay(1000);
+      }
+    } catch (error) {
+      console.error(
+        `%c[Overpass] ❌ Final failure for ${category} after retries. Assuming 0 facilities.`,
+        "color: #ef4444",
+        error
+      );
+      results.push({ category, facilities: [], status: "fulfilled" });
+    }
+  }
 
   // Process results
   results.forEach((result) => {
-    if (result.status === "fulfilled") {
-      const { facilities } = result.value;
+    if (result && result.status === "fulfilled") {
+      const { facilities } = result as any;
       allFacilities.push(...facilities);
 
-      // Count facilities by their actual category after processing
-      facilities.forEach((facility) => {
-        facilityCounts[facility.category as keyof typeof facilityCounts]++;
+      // Count facilities AND Sum Scores
+      facilities.forEach((facility: Facility) => {
+        if (facilityCounts.hasOwnProperty(facility.category)) {
+          // Increment count
+          facilityCounts[facility.category as keyof typeof facilityCounts]++;
+          
+          // Add contribution score logic
+          // IMPORTANT: Cap widely available items to prevent massive inflation
+          
+          if (facility.category === 'walkability') {
+             // Walkability items (paths, lights) are numerous/segmented. Reduce impact.
+             const reducedContribution = facility.contribution * 0.25;
+             categoryScores.walkability += reducedContribution;
+
+             // CRITICAL FIX: Street lamps are captured by 'walkability' (Priority 8) but should also contribute to 'safety'
+             const isLighting = 
+                facility.tags?.highway === 'street_lamp' || 
+                facility.tags?.lit === 'yes';
+                
+             if (isLighting) {
+                 // Add to safety score as well (with same reduced weight)
+                 categoryScores.safety += reducedContribution;
+             }
+          } 
+          else if (facility.category === 'safety') {
+             // Differentiate infrastructure (cameras) vs Major Services (Fire Stations)
+             const isMajorSafety = 
+                facility.tags?.amenity === 'fire_station';
+             
+             if (isMajorSafety) {
+                 categoryScores.safety += facility.contribution; // Full value for Fire Stations
+             } else {
+                 categoryScores.safety += (facility.contribution * 0.25); // Reduced for cameras/infra
+             }
+          } else {
+             categoryScores[facility.category as keyof typeof categoryScores] += facility.contribution;
+          }
+        }
       });
     }
   });
@@ -979,12 +1104,13 @@ export const calculateLivabilityScore = async (
   customFacilities.forEach((facility) => {
     if (facilityCounts.hasOwnProperty(facility.category)) {
       facilityCounts[facility.category as keyof typeof facilityCounts]++;
+      categoryScores[facility.category as keyof typeof categoryScores] += facility.contribution;
     }
   });
   // ===== END CUSTOM POI INTEGRATION =====
 
-  // Calculate scores
-  const subscores = calculateSubScores(facilityCounts);
+  // Calculate scores using the NEW contribution sums
+  const subscores = calculateSubScores(categoryScores, facilityCounts);
 
   // Overall score is weighted average of sub-scores
   const overall =
