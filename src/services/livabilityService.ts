@@ -1008,25 +1008,148 @@ export const calculateLivabilityScore = async (
     return { category, facilities: [], status: "rejected" };
   };
 
-  // Execute requests SEQUENTIALLY to avoid Rate Limiting (429)
-  const results = [];
-  for (const category of categories) {
-    try {
-      const result = await fetchCategoryWithRetry(category, lat, lng);
-      results.push(result);
-      
-      // Only delay if we actually hit the API (not from cache)
-      if (!result.fromCache) {
-         // Increased delay between SUCCESSFUL requests to be safer (2s)
-         await delay(2000);
-      }
-    } catch (error) {
-      console.error(
-        `%c[Overpass] ❌ Final failure for ${category} after retries. Assuming 0 facilities.`,
-        "color: #ef4444",
-        error
+  // Batch categories to reduce requests (2 categories per request)
+  const batchedCategories: string[][] = [
+    ["health", "education"],
+    ["market", "transport"],
+    ["recreation", "religious"],
+    ["safety", "police"],
+    ["walkability", "accessibility"]
+  ];
+
+  // Helper to fetch a BATCH of categories
+  const fetchBatchWithRetry = async (
+    categoriesToFetch: string[],
+    lat: number,
+    lng: number,
+    retries = 3
+  ) => {
+    // Generate combined query
+    let combinedQueryBody = "";
+    categoriesToFetch.forEach(cat => {
+       const fullQuery = generateOverpassQuery(cat, lat, lng);
+       const content = fullQuery.replace('[out:json];', '').replace('out center;', '').trim();
+       combinedQueryBody += content;
+    });
+
+    const finalQuery = `
+      [out:json][timeout:25];
+      (
+        ${combinedQueryBody}
       );
-      results.push({ category, facilities: [], status: "fulfilled" });
+      out center;
+    `;
+
+    // 1. SMART CACHE CHECK
+    // Check if this specific batch query is already in cache
+    const formattedQuery = finalQuery.replace(/{lat}/g, lat.toString()).replace(/{lng}/g, lng.toString());
+    const cacheKey = `overpass-${cacheUtils.hash(formattedQuery)}`;
+    
+    // We try to peek into the cache directly using our cacheService wrapper (we need to expose a way or just use checkLocationData)
+    // Since queryOverpassAPI does the cache check internally, we can trust it. 
+    // BUT we want to know BEFORE we enter the retry loop or log "Fetching" if possible.
+    // We already added 'getCachedLocationData' to CacheService for exactly this purpose!
+    
+    const cachedData = cacheService.getCachedLocationData<any[]>(lat, lng, cacheKey);
+    
+    if (cachedData) {
+        console.log(
+            `%c[Livability] ⚡ Batch [${categoriesToFetch.join(', ')}] found in cache! Skipping API.`,
+            "color: #8b5cf6"
+        );
+        
+        // We still need to split the cached data into categories like we do after a fetch
+        let allBatchFacilities: Facility[] = [];
+        categoriesToFetch.forEach(cat => {
+             const catFacilities = processFacilities(cachedData, cat, lat, lng);
+             const validForCat = catFacilities.filter(f => f.category === cat);
+             allBatchFacilities.push(...validForCat);
+        });
+
+        return { 
+            status: "fulfilled", 
+            facilities: allBatchFacilities,
+            fromCache: true 
+        };
+    }
+
+    // Try fetching with exponential backoff
+    for (let i = 0; i < retries; i++) {
+        try {
+            // Check cache first for the whole batch key
+            const cacheKey = `batch:${categoriesToFetch.join('+')}`;
+            // ... (Simple cache check logic could go here, but for simplicity/safety we rely on single-key caching inside queryOverpassAPI)
+            
+            const rawElements = await queryOverpassAPI(finalQuery, lat, lng);
+            
+            // Process elements. Since we batched, we need to redistribute them to correct categories.
+            // processFacilities already does classification based on tags!
+            // We just need to run it for each category we were looking for.
+            
+            let allBatchFacilities: Facility[] = [];
+            
+
+            
+            // Better approach: Run processFacilities for each category in the batch on the SAME rawElements
+            categoriesToFetch.forEach(cat => {
+                 const catFacilities = processFacilities(rawElements, cat, lat, lng);
+                 // Filter to only keep ones that `processFacilities` determined actually belong to `cat`
+                 // (Because processFacilities Logic might re-assign 'school' to 'education' even if we passed 'health')
+                 const validForCat = catFacilities.filter(f => f.category === cat);
+                 allBatchFacilities.push(...validForCat);
+            });
+
+            // ... inside fetchBatchWithRetry, after processing ...
+            
+            console.log(
+              `%c[Overpass] ✅ Batch [${categoriesToFetch.join(', ')}] success! Found ${allBatchFacilities.length} items.`,
+              "color: #22c55e"
+            );
+
+            return { 
+                status: "fulfilled", 
+                facilities: allBatchFacilities,
+                fromCache: false 
+            };
+
+        } catch (error) {
+             const isLastAttempt = i === retries - 1;
+             
+             console.warn(
+                `%c[Overpass] ⚠️ Retry ${i + 1}/${retries} for batch [${categoriesToFetch.join(', ')}] failed:`, 
+                "color: #eab308", 
+                error
+             );
+
+             if (isLastAttempt) {
+                 console.error(
+                    `%c[Overpass] ❌ Final failure for batch [${categoriesToFetch.join(', ')}].`,
+                    "color: #ef4444"
+                 );
+                 throw error;
+             }
+             
+             const waitTime = Math.pow(2, i) * 1000 + (Math.random() * 1000);
+             await delay(waitTime);
+        }
+    }
+  };
+
+  // Execute Batches Sequentially
+  const results = [];
+  for (const batch of batchedCategories) {
+    try {
+        console.log(`%c[Livability] 🔄 Fetching batch: ${batch.join(' + ')}...`, "color: #3b82f6");
+        const result = await fetchBatchWithRetry(batch, lat, lng);
+        results.push(result);
+        
+        // Delay between batches
+        await delay(2000); 
+        
+    } catch (error) {
+         console.error(`%c[Livability] ☠️ Failed batch ${batch.join('+')}`, "color: #ef4444", error);
+         // Fallback: push empty result so the app doesn't crash
+         results.push({ status: "fulfilled", facilities: [] });
     }
   }
 
