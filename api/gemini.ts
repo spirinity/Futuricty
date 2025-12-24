@@ -1,6 +1,3 @@
-// Vercel Edge Function for Gemini AI API
-// Note: Use standard Web Request/Response for Vercel Edge Functions in a non-Next.js project
-
 interface LocationData {
   address: string;
   facilityCounts: {
@@ -86,7 +83,7 @@ export default async function handler(req: Request): Promise<Response> {
 
     // Call Gemini API
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: {

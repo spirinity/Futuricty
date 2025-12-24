@@ -333,7 +333,7 @@ const queryOverpassAPI = async (
     `overpass-${cacheUtils.hash(formattedQuery)}`,
     async () => {
       // REMOVED TRY-CATCH HERE so errors propagate to the retry logic!
-      const response = await fetch("https://overpass-api.de/api/interpreter", {
+      const response = await fetch("https://overpass.private.coffee/api/interpreter", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -1017,8 +1017,8 @@ export const calculateLivabilityScore = async (
       
       // Only delay if we actually hit the API (not from cache)
       if (!result.fromCache) {
-         // Increased delay between SUCCESSFUL requests to be safer
-         await delay(1000);
+         // Increased delay between SUCCESSFUL requests to be safer (2s)
+         await delay(2000);
       }
     } catch (error) {
       console.error(
